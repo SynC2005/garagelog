@@ -10,5 +10,10 @@ export const prisma =
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+} else {
+  // Selalu cache instance prisma di serverless container agar tidak leak koneksi
+  globalForPrisma.prisma = prisma;
+}
 
