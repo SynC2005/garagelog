@@ -28,9 +28,13 @@ export function MasukWrapper() {
     setIsLoading(false);
 
     if (res.success && res.data) {
-      // Simpan session info jika perlu di sessionStorage
+      // Simpan session info di sessionStorage
       sessionStorage.setItem("active_user", JSON.stringify(res.data));
-      router.push("/dashboard");
+      if (res.data.peran === "Montir") {
+        router.push("/tugas");
+      } else {
+        router.push("/dashboard");
+      }
     } else {
       setError(res.error || "Email atau kata sandi tidak valid.");
     }
@@ -112,6 +116,60 @@ export function MasukWrapper() {
               {isLoading ? "Memproses..." : "Masuk"}
             </Button>
           </form>
+
+          {/* Akses Cepat Akun Demo */}
+          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-2">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 text-center">
+              Pilih Akun Cepat (Demo):
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("budi.montir@garagelog.com");
+                  setPassword("bengkel123");
+                  setError(null);
+                }}
+                className={`py-1.5 px-2 text-[11px] font-semibold rounded-lg border transition-all text-center ${
+                  email === "budi.montir@garagelog.com"
+                    ? "bg-orange-50 border-orange-500 text-orange-600 dark:bg-orange-950/40 dark:border-orange-500 dark:text-orange-400"
+                    : "border-slate-200 hover:bg-slate-50 text-slate-600 dark:border-zinc-800 dark:hover:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                🔧 Montir
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@garagelog.com");
+                  setPassword("bengkel123");
+                  setError(null);
+                }}
+                className={`py-1.5 px-2 text-[11px] font-semibold rounded-lg border transition-all text-center ${
+                  email === "admin@garagelog.com"
+                    ? "bg-orange-50 border-orange-500 text-orange-600 dark:bg-orange-950/40 dark:border-orange-500 dark:text-orange-400"
+                    : "border-slate-200 hover:bg-slate-50 text-slate-600 dark:border-zinc-800 dark:hover:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                💼 Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("owner@garagelog.com");
+                  setPassword("bengkel123");
+                  setError(null);
+                }}
+                className={`py-1.5 px-2 text-[11px] font-semibold rounded-lg border transition-all text-center ${
+                  email === "owner@garagelog.com"
+                    ? "bg-orange-50 border-orange-500 text-orange-600 dark:bg-orange-950/40 dark:border-orange-500 dark:text-orange-400"
+                    : "border-slate-200 hover:bg-slate-50 text-slate-600 dark:border-zinc-800 dark:hover:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                👑 Pemilik
+              </button>
+            </div>
+          </div>
 
           {/* Link ke pelacakan */}
           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800 text-center">
