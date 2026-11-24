@@ -1,10 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { Users, Bike, Plus, Search, Edit2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Search, AlertCircle, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
-import { Button } from "@/components/ui/Button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   createCustomerAction,
   updateCustomerAction,
@@ -20,20 +32,25 @@ interface PelangganWrapperProps {
 }
 
 export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
-  const [customers, setCustomers] = React.useState(initialCustomers);
+  const [customers] = React.useState(initialCustomers);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<number>(
     initialCustomers[0]?.id || 0
   );
   const [search, setSearch] = React.useState("");
   const [isSubmittingCustomer, setIsSubmittingCustomer] = React.useState(false);
   const [isSubmittingVehicle, setIsSubmittingVehicle] = React.useState(false);
-  const [feedback, setFeedback] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [feedback, setFeedback] = React.useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
-  // Customer Form state
   const [isEditingCustomer, setIsEditingCustomer] = React.useState(false);
-  const [customerForm, setCustomerForm] = React.useState({ id: 0, nama: "", telepon: "" });
+  const [customerForm, setCustomerForm] = React.useState({
+    id: 0,
+    nama: "",
+    telepon: "",
+  });
 
-  // Vehicle Form state
   const [isEditingVehicle, setIsEditingVehicle] = React.useState(false);
   const [vehicleForm, setVehicleForm] = React.useState({
     id: 0,
@@ -67,20 +84,34 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           telepon: customerForm.telepon.trim(),
         });
         if (!res.success) {
-          setFeedback({ type: "error", text: res.error || "Gagal mengubah pelanggan." });
+          setFeedback({
+            type: "error",
+            text: res.error || "Gagal mengubah pelanggan.",
+          });
           return;
         }
-        setFeedback({ type: "success", text: "Data pelanggan berhasil diperbarui!" });
+        toast.success("Data pelanggan berhasil diperbarui!");
+        setFeedback({
+          type: "success",
+          text: "Data pelanggan berhasil diperbarui!",
+        });
       } else {
         const res = await createCustomerAction({
           nama: customerForm.nama.trim(),
           telepon: customerForm.telepon.trim(),
         });
         if (!res.success) {
-          setFeedback({ type: "error", text: res.error || "Gagal menambah pelanggan." });
+          setFeedback({
+            type: "error",
+            text: res.error || "Gagal menambah pelanggan.",
+          });
           return;
         }
-        setFeedback({ type: "success", text: "Pelanggan baru berhasil ditambahkan!" });
+        toast.success("Pelanggan baru berhasil ditambahkan!");
+        setFeedback({
+          type: "success",
+          text: "Pelanggan baru berhasil ditambahkan!",
+        });
       }
 
       setCustomerForm({ id: 0, nama: "", telepon: "" });
@@ -96,10 +127,15 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
   const handleSaveVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer) {
-      alert("Pilih pelanggan terlebih dahulu.");
+      toast.error("Pilih pelanggan terlebih dahulu.");
       return;
     }
-    if (!vehicleForm.merek.trim() || !vehicleForm.model.trim() || !vehicleForm.nopol.trim()) return;
+    if (
+      !vehicleForm.merek.trim() ||
+      !vehicleForm.model.trim() ||
+      !vehicleForm.nopol.trim()
+    )
+      return;
 
     try {
       setIsSubmittingVehicle(true);
@@ -113,10 +149,17 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           nomorPolisi: vehicleForm.nopol.trim().toUpperCase(),
         });
         if (!res.success) {
-          setFeedback({ type: "error", text: res.error || "Gagal mengubah kendaraan." });
+          setFeedback({
+            type: "error",
+            text: res.error || "Gagal mengubah kendaraan.",
+          });
           return;
         }
-        setFeedback({ type: "success", text: "Data kendaraan berhasil diperbarui!" });
+        toast.success("Data kendaraan berhasil diperbarui!");
+        setFeedback({
+          type: "success",
+          text: "Data kendaraan berhasil diperbarui!",
+        });
       } else {
         const res = await createVehicleAction({
           pelangganId: selectedCustomer.id,
@@ -126,13 +169,26 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           nomorPolisi: vehicleForm.nopol.trim().toUpperCase(),
         });
         if (!res.success) {
-          setFeedback({ type: "error", text: res.error || "Gagal menambah kendaraan." });
+          setFeedback({
+            type: "error",
+            text: res.error || "Gagal menambah kendaraan.",
+          });
           return;
         }
-        setFeedback({ type: "success", text: "Kendaraan baru berhasil didaftarkan!" });
+        toast.success("Kendaraan baru berhasil didaftarkan!");
+        setFeedback({
+          type: "success",
+          text: "Kendaraan baru berhasil didaftarkan!",
+        });
       }
 
-      setVehicleForm({ id: 0, merek: "", model: "", tahun: new Date().getFullYear(), nopol: "" });
+      setVehicleForm({
+        id: 0,
+        merek: "",
+        model: "",
+        tahun: new Date().getFullYear(),
+        nopol: "",
+      });
       setIsEditingVehicle(false);
       window.location.reload();
     } catch (err: any) {
@@ -146,162 +202,199 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
     <StaffLayout>
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           Pelanggan dan Kendaraan
         </h1>
-        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-          Data master pelanggan beserta unit motor miliknya untuk registrasi pesanan bengkel.
+        <p className="text-sm text-muted-foreground mt-1">
+          Data master pelanggan beserta unit motor miliknya untuk registrasi
+          pesanan bengkel.
         </p>
       </div>
 
-      {/* Grid 2 Kolom Sesuai Wireframe Page 7 */}
+      {/* Grid 2 Kolom */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Kolom Kiri: Pelanggan (6 cols) */}
+        {/* Kolom Kiri: Pelanggan */}
         <div className="lg:col-span-6 space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-base">Daftar Pelanggan</CardTitle>
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between space-y-0 border-b border-border">
+              <CardTitle className="text-base font-semibold">
+                Daftar Pelanggan
+              </CardTitle>
               <Button
-                size="sm"
-                className="text-xs"
+                size="xs"
                 onClick={() => {
                   setIsEditingCustomer(false);
                   setCustomerForm({ id: 0, nama: "", telepon: "" });
                 }}
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                <span>+ Pelanggan</span>
+                <Plus className="size-3.5" aria-hidden="true" />
+                <span>Pelanggan</span>
               </Button>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {feedback && (
-                <div
-                  className={`p-3 rounded-lg text-xs flex items-center gap-2 ${
+                <Alert
+                  variant={feedback.type === "error" ? "destructive" : "default"}
+                  className={
                     feedback.type === "success"
-                      ? "bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-                      : "bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300"
-                  }`}
+                      ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+                      : undefined
+                  }
                 >
                   {feedback.type === "success" ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <AlertCircle className="size-4" />
                   )}
-                  <span>{feedback.text}</span>
-                </div>
+                  <AlertDescription className="text-xs text-current">
+                    {feedback.text}
+                  </AlertDescription>
+                </Alert>
               )}
 
-              {/* Search input */}
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Search className="w-3.5 h-3.5" />
-                </div>
-                <input
+                <Search
+                  className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  aria-hidden="true"
+                />
+                <Input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Cari pelanggan"
                   placeholder="Cari nama atau telepon..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                  className="pl-8 h-8 text-xs"
                 />
               </div>
 
-              {/* Table */}
-              <div className="border border-slate-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                    <tr>
-                      <th className="py-2.5 px-3">Nama</th>
-                      <th className="py-2.5 px-3">Telepon</th>
-                      <th className="py-2.5 px-3 text-center">Unit Motor</th>
-                      <th className="py-2.5 px-3 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+              <div className="border border-border rounded-lg overflow-hidden">
+                <Table className="text-xs">
+                  <TableHeader className="bg-muted/60">
+                    <TableRow>
+                      <TableHead className="px-3">Nama</TableHead>
+                      <TableHead className="px-3">Telepon</TableHead>
+                      <TableHead className="px-3 text-center">
+                        Unit Motor
+                      </TableHead>
+                      <TableHead className="px-3 text-center">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {filteredCustomers.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="py-6 text-center text-slate-400">
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="py-6 text-center text-muted-foreground"
+                        >
                           Tidak ada data pelanggan ditemukan.
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ) : (
                       filteredCustomers.map((c) => {
                         const isSelected = c.id === selectedCustomer?.id;
                         return (
-                          <tr
+                          <TableRow
                             key={c.id}
                             onClick={() => setSelectedCustomerId(c.id)}
-                            className={`cursor-pointer transition-colors ${
-                              isSelected
-                                ? "bg-orange-50/60 dark:bg-orange-950/20 font-semibold"
-                                : "hover:bg-slate-50 dark:hover:bg-zinc-800/40"
-                            }`}
+                            data-state={isSelected ? "selected" : undefined}
+                            className="cursor-pointer"
                           >
-                            <td className="py-2.5 px-3 text-slate-900 dark:text-white">{c.nama}</td>
-                            <td className="py-2.5 px-3 text-slate-600 dark:text-zinc-300">
+                            <TableCell className="px-3 py-2.5 font-medium text-foreground">
+                              {c.nama}
+                            </TableCell>
+                            <TableCell className="px-3 py-2.5 text-muted-foreground font-mono">
                               {c.telepon}
-                            </td>
-                            <td className="py-2.5 px-3 text-center font-bold text-orange-600 dark:text-orange-400">
+                            </TableCell>
+                            <TableCell className="px-3 py-2.5 text-center font-bold tabular-nums text-primary">
                               {c.kendaraan?.length || 0}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <button
+                            </TableCell>
+                            <TableCell className="px-3 py-2.5 text-center">
+                              <Button
                                 type="button"
+                                variant="outline"
+                                size="xs"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setIsEditingCustomer(true);
-                                  setCustomerForm({ id: c.id, nama: c.nama, telepon: c.telepon });
+                                  setCustomerForm({
+                                    id: c.id,
+                                    nama: c.nama,
+                                    telepon: c.telepon,
+                                  });
                                 }}
-                                className="text-xs text-slate-600 dark:text-zinc-400 hover:text-orange-500 px-2 py-0.5 rounded border border-slate-200 dark:border-zinc-700"
                               >
                                 Ubah
-                              </button>
-                            </td>
-                          </tr>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
                         );
                       })
                     )}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
 
-          {/* Form Ubah / Tambah Pelanggan Sesuai Wireframe Page 7 */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-sm">
-                {isEditingCustomer ? "Ubah Pelanggan" : "Tambah Pelanggan Baru"}
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 border-b border-border">
+              <CardTitle className="text-sm font-semibold">
+                {isEditingCustomer
+                  ? "Ubah Pelanggan"
+                  : "Tambah Pelanggan Baru"}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <form onSubmit={handleSaveCustomer} className="space-y-3 text-xs">
-                <div>
-                  <label className="font-semibold block mb-1">Nama Lengkap</label>
-                  <input
+                <div className="space-y-1.5">
+                  <Label htmlFor="cust-name" className="text-xs font-semibold">
+                    Nama Lengkap
+                  </Label>
+                  <Input
+                    id="cust-name"
                     type="text"
                     required
                     value={customerForm.nama}
-                    onChange={(e) => setCustomerForm({ ...customerForm, nama: e.target.value })}
+                    onChange={(e) =>
+                      setCustomerForm({ ...customerForm, nama: e.target.value })
+                    }
                     placeholder="Contoh: Budi Santoso"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                    className="h-9 text-xs"
                   />
                 </div>
 
-                <div>
-                  <label className="font-semibold block mb-1">Nomor Telepon</label>
-                  <input
+                <div className="space-y-1.5">
+                  <Label htmlFor="cust-phone" className="text-xs font-semibold">
+                    Nomor Telepon
+                  </Label>
+                  <Input
+                    id="cust-phone"
                     type="text"
                     required
                     value={customerForm.telepon}
-                    onChange={(e) => setCustomerForm({ ...customerForm, telepon: e.target.value })}
+                    onChange={(e) =>
+                      setCustomerForm({
+                        ...customerForm,
+                        telepon: e.target.value,
+                      })
+                    }
                     placeholder="08xxxxxxxxxx"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                    className="h-9 text-xs font-mono"
                   />
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button type="submit" size="sm" disabled={isSubmittingCustomer} className="text-xs">
-                    {isSubmittingCustomer ? "Menyimpan..." : isEditingCustomer ? "Perbarui Pelanggan" : "Simpan Pelanggan"}
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmittingCustomer}
+                    className="text-xs"
+                  >
+                    {isSubmittingCustomer
+                      ? "Menyimpan..."
+                      : isEditingCustomer
+                      ? "Perbarui Pelanggan"
+                      : "Simpan Pelanggan"}
                   </Button>
                   {isEditingCustomer && (
                     <Button
@@ -324,62 +417,76 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           </Card>
         </div>
 
-        {/* Kolom Kanan: Kendaraan Milik Pelanggan (6 cols) Sesuai Wireframe Page 7 */}
+        {/* Kolom Kanan: Kendaraan Milik Pelanggan */}
         <div className="lg:col-span-6 space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border">
               <div>
-                <CardTitle className="text-base">
+                <CardTitle className="text-base font-semibold">
                   Kendaraan milik: {selectedCustomer?.nama || "-"}
                 </CardTitle>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Daftar motor yang terdaftar atas nama pelanggan ini
                 </p>
               </div>
 
               <Button
-                size="sm"
-                className="text-xs"
+                size="xs"
                 onClick={() => {
                   setIsEditingVehicle(false);
-                  setVehicleForm({ id: 0, merek: "", model: "", tahun: new Date().getFullYear(), nopol: "" });
+                  setVehicleForm({
+                    id: 0,
+                    merek: "",
+                    model: "",
+                    tahun: new Date().getFullYear(),
+                    nopol: "",
+                  });
                 }}
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                <span>+ Kendaraan</span>
+                <Plus className="size-3.5" aria-hidden="true" />
+                <span>Kendaraan</span>
               </Button>
             </CardHeader>
             <CardContent className="p-4">
               {customerVehicles.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center">
-                  Pelanggan ini belum memiliki motor terdaftar. Tambahkan kendaraan di formulir bawah.
+                <p className="text-xs text-muted-foreground py-6 text-center">
+                  Pelanggan ini belum memiliki motor terdaftar. Tambahkan
+                  kendaraan di formulir bawah.
                 </p>
               ) : (
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                      <tr>
-                        <th className="py-2.5 px-3">Merek</th>
-                        <th className="py-2.5 px-3">Model</th>
-                        <th className="py-2.5 px-3 text-center">Tahun</th>
-                        <th className="py-2.5 px-3 font-mono">No. Polisi</th>
-                        <th className="py-2.5 px-3 text-center">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <Table className="text-xs">
+                    <TableHeader className="bg-muted/60">
+                      <TableRow>
+                        <TableHead className="px-3">Merek</TableHead>
+                        <TableHead className="px-3">Model</TableHead>
+                        <TableHead className="px-3 text-center">Tahun</TableHead>
+                        <TableHead className="px-3 font-mono">
+                          No. Polisi
+                        </TableHead>
+                        <TableHead className="px-3 text-center">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {customerVehicles.map((v) => (
-                        <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                          <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-white">
+                        <TableRow key={v.id}>
+                          <TableCell className="px-3 py-2.5 font-semibold text-foreground">
                             {v.merek}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-700 dark:text-zinc-300">{v.model}</td>
-                          <td className="py-2.5 px-3 text-center text-slate-500">{v.tahun}</td>
-                          <td className="py-2.5 px-3 font-mono font-bold text-orange-600 dark:text-orange-400">
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-muted-foreground">
+                            {v.model}
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-center tabular-nums text-muted-foreground">
+                            {v.tahun}
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 font-mono font-bold text-primary">
                             {v.nomor_polisi}
-                          </td>
-                          <td className="py-2.5 px-3 text-center">
-                            <button
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-center">
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="xs"
                               onClick={() => {
                                 setIsEditingVehicle(true);
                                 setVehicleForm({
@@ -390,86 +497,116 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                                   nopol: v.nomor_polisi,
                                 });
                               }}
-                              className="text-xs text-slate-600 dark:text-zinc-400 hover:text-orange-500 px-2 py-0.5 rounded border border-slate-200 dark:border-zinc-700"
                             >
                               Ubah
-                            </button>
-                          </td>
-                        </tr>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Form Tambah / Ubah Kendaraan Sesuai Wireframe Page 7 */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-sm">
-                {isEditingVehicle ? "Ubah Data Kendaraan" : "Tambah Kendaraan untuk Pelanggan Ini"}
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 border-b border-border">
+              <CardTitle className="text-sm font-semibold">
+                {isEditingVehicle
+                  ? "Ubah Data Kendaraan"
+                  : "Tambah Kendaraan untuk Pelanggan Ini"}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <form onSubmit={handleSaveVehicle} className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold block mb-1">Merek</label>
-                    <input
+                  <div className="space-y-1.5">
+                    <Label htmlFor="veh-brand" className="text-xs font-semibold">
+                      Merek
+                    </Label>
+                    <Input
+                      id="veh-brand"
                       type="text"
                       required
                       value={vehicleForm.merek}
-                      onChange={(e) => setVehicleForm({ ...vehicleForm, merek: e.target.value })}
+                      onChange={(e) =>
+                        setVehicleForm({ ...vehicleForm, merek: e.target.value })
+                      }
                       placeholder="Contoh: Yamaha"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                      className="h-9 text-xs"
                     />
                   </div>
 
-                  <div>
-                    <label className="font-semibold block mb-1">Model</label>
-                    <input
+                  <div className="space-y-1.5">
+                    <Label htmlFor="veh-model" className="text-xs font-semibold">
+                      Model
+                    </Label>
+                    <Input
+                      id="veh-model"
                       type="text"
                       required
                       value={vehicleForm.model}
-                      onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
+                      onChange={(e) =>
+                        setVehicleForm({ ...vehicleForm, model: e.target.value })
+                      }
                       placeholder="Contoh: Scorpio 225"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                      className="h-9 text-xs"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold block mb-1">Tahun Pembuatan</label>
-                    <input
+                  <div className="space-y-1.5">
+                    <Label htmlFor="veh-year" className="text-xs font-semibold">
+                      Tahun Pembuatan
+                    </Label>
+                    <Input
+                      id="veh-year"
                       type="number"
                       required
                       value={vehicleForm.tahun}
                       onChange={(e) =>
-                        setVehicleForm({ ...vehicleForm, tahun: Number(e.target.value) })
+                        setVehicleForm({
+                          ...vehicleForm,
+                          tahun: Number(e.target.value),
+                        })
                       }
                       placeholder="2018"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                      className="h-9 text-xs tabular-nums"
                     />
                   </div>
 
-                  <div>
-                    <label className="font-semibold block mb-1">Nomor Polisi</label>
-                    <input
+                  <div className="space-y-1.5">
+                    <Label htmlFor="veh-nopol" className="text-xs font-semibold">
+                      Nomor Polisi
+                    </Label>
+                    <Input
+                      id="veh-nopol"
                       type="text"
                       required
                       value={vehicleForm.nopol}
-                      onChange={(e) => setVehicleForm({ ...vehicleForm, nopol: e.target.value })}
+                      onChange={(e) =>
+                        setVehicleForm({ ...vehicleForm, nopol: e.target.value })
+                      }
                       placeholder="B 1234 ABC"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs font-mono uppercase"
+                      className="h-9 text-xs font-mono uppercase"
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button type="submit" size="sm" disabled={isSubmittingVehicle} className="text-xs">
-                    {isSubmittingVehicle ? "Menyimpan..." : isEditingVehicle ? "Perbarui Kendaraan" : "Simpan Kendaraan"}
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmittingVehicle}
+                    className="text-xs"
+                  >
+                    {isSubmittingVehicle
+                      ? "Menyimpan..."
+                      : isEditingVehicle
+                      ? "Perbarui Kendaraan"
+                      : "Simpan Kendaraan"}
                   </Button>
                   {isEditingVehicle && (
                     <Button
@@ -480,7 +617,13 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                       className="text-xs"
                       onClick={() => {
                         setIsEditingVehicle(false);
-                        setVehicleForm({ id: 0, merek: "", model: "", tahun: new Date().getFullYear(), nopol: "" });
+                        setVehicleForm({
+                          id: 0,
+                          merek: "",
+                          model: "",
+                          tahun: new Date().getFullYear(),
+                          nopol: "",
+                        });
                       }}
                     >
                       Batal
@@ -495,4 +638,3 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
     </StaffLayout>
   );
 }
-

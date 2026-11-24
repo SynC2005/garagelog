@@ -5,19 +5,40 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   User,
-  Bike,
   Wrench,
   Package,
   ListOrdered,
   Plus,
   Trash2,
   ArrowLeft,
-  CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
-import { Button } from "@/components/ui/Button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { createOrderAction } from "@/server/api/pesanan/pesananApi";
 
@@ -133,7 +154,9 @@ export function BuatPesananWrapper({
     if (exists) {
       setOrderParts((prev) =>
         prev.map((p) =>
-          p.sukuCadangId === selectedPartId ? { ...p, jumlah: p.jumlah + qty } : p
+          p.sukuCadangId === selectedPartId
+            ? { ...p, jumlah: p.jumlah + qty }
+            : p
         )
       );
     } else {
@@ -159,7 +182,6 @@ export function BuatPesananWrapper({
     );
   };
 
-  // Subtotal calculations
   const subtotalJasa = selectedServices.reduce((sum, sId) => {
     const s = servicesCatalog.find((item) => item.id === sId);
     return sum + (s?.harga_dasar || 0);
@@ -181,17 +203,23 @@ export function BuatPesananWrapper({
       return;
     }
     if (!selectedVehicleId) {
-      setErrorMessage("Pelanggan ini belum memiliki kendaraan terdaftar. Daftarkan kendaraan di menu Pelanggan terlebih dahulu.");
+      setErrorMessage(
+        "Pelanggan ini belum memiliki kendaraan terdaftar. Daftarkan kendaraan di menu Pelanggan terlebih dahulu."
+      );
       return;
     }
     if (selectedServices.length === 0 && orderParts.length === 0) {
-      setErrorMessage("Pilih minimal satu layanan jasa atau satu suku cadang untuk pesanan ini.");
+      setErrorMessage(
+        "Pilih minimal satu layanan jasa atau satu suku cadang untuk pesanan ini."
+      );
       return;
     }
 
     const activeStageIds = stages.filter((s) => s.selected).map((s) => s.id);
     if (activeStageIds.length === 0) {
-      setErrorMessage("Pilih minimal satu tahapan pengerjaan untuk pesanan ini.");
+      setErrorMessage(
+        "Pilih minimal satu tahapan pengerjaan untuk pesanan ini."
+      );
       return;
     }
 
@@ -200,7 +228,7 @@ export function BuatPesananWrapper({
     const res = await createOrderAction({
       pelangganId: selectedCustomerId,
       kendaraanId: selectedVehicleId,
-      dibuatOlehId: 1, // Admin bengkel
+      dibuatOlehId: 1,
       perkiraanSelesai: perkiraanSelesai,
       catatan: catatan.trim(),
       jasaIds: selectedServices,
@@ -215,6 +243,7 @@ export function BuatPesananWrapper({
     setIsSubmitting(false);
 
     if (res.success && res.data) {
+      toast.success(`Pesanan ${res.data.kode_pesanan} berhasil dibuat!`);
       router.push(`/pesanan/${res.data.kode_pesanan}`);
     } else {
       setErrorMessage(res.error || "Gagal membuat pesanan baru.");
@@ -225,72 +254,86 @@ export function BuatPesananWrapper({
     <StaffLayout>
       {/* Header Form */}
       <div className="flex items-center gap-3">
-        <Link href="/pesanan">
-          <Button variant="outline" size="sm" className="h-9 w-9 p-0">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-        </Link>
+        <Button asChild variant="outline" size="icon">
+          <Link href="/pesanan" aria-label="Kembali ke daftar pesanan">
+            <ArrowLeft className="size-4" aria-hidden="true" />
+          </Link>
+        </Button>
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
             Buat Pesanan Modifikasi
           </h1>
-          <p className="text-xs text-slate-500 dark:text-zinc-400">
-            Formulir pendaftaran pelanggan, penentuan modifikasi, suku cadang, dan template tahapan.
+          <p className="text-xs text-muted-foreground">
+            Formulir pendaftaran pelanggan, penentuan modifikasi, suku cadang, dan
+            template tahapan.
           </p>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertDescription className="text-xs">{errorMessage}</AlertDescription>
+        </Alert>
       )}
 
-      <form onSubmit={handleSaveOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <form
+        onSubmit={handleSaveOrder}
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
+      >
         {/* Kolom Form Input (8 kolom) */}
         <div className="lg:col-span-8 space-y-6">
           {/* 1. Pelanggan & Kendaraan */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-orange-500" />
-                <CardTitle className="text-base">1. Pelanggan & Kendaraan</CardTitle>
-              </div>
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border flex flex-row items-center gap-2 space-y-0">
+              <User className="size-4 text-primary" aria-hidden="true" />
+              <CardTitle className="text-base font-semibold">
+                1. Pelanggan &amp; Kendaraan
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-5 space-y-4 text-xs">
+            <CardContent className="p-5 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="font-semibold block mb-1.5">Pilih Pelanggan</label>
-                  <select
-                    value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Pilih Pelanggan</Label>
+                  <Select
+                    value={selectedCustomerId ? String(selectedCustomerId) : ""}
+                    onValueChange={(val) => setSelectedCustomerId(Number(val))}
                   >
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nama} ({c.telepon})
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 text-xs">
+                      <SelectValue placeholder="Pilih pelanggan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.nama} ({c.telepon})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div>
-                  <label className="font-semibold block mb-1.5">Pilih Kendaraan Motor</label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Pilih Kendaraan Motor
+                  </Label>
                   {currentCustomer && currentCustomer.kendaraan.length > 0 ? (
-                    <select
-                      value={selectedVehicleId}
-                      onChange={(e) => setSelectedVehicleId(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                    <Select
+                      value={selectedVehicleId ? String(selectedVehicleId) : ""}
+                      onValueChange={(val) => setSelectedVehicleId(Number(val))}
                     >
-                      {currentCustomer.kendaraan.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.merek} {v.model} ({v.nomor_polisi}) - {v.tahun}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectValue placeholder="Pilih motor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentCustomer.kendaraan.map((v) => (
+                          <SelectItem key={v.id} value={String(v.id)}>
+                            {v.merek} {v.model} ({v.nomor_polisi}) - {v.tahun}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
-                    <div className="p-2 border border-dashed border-rose-300 rounded-lg text-rose-600 dark:text-rose-400 text-[11px]">
+                    <div className="p-2.5 border border-dashed border-destructive/40 rounded-md text-destructive text-[11px]">
                       Belum ada motor terdaftar untuk pelanggan ini.{" "}
                       <Link href="/pelanggan" className="underline font-bold">
                         Tambah di Pelanggan &rarr;
@@ -303,71 +346,77 @@ export function BuatPesananWrapper({
           </Card>
 
           {/* 2. Paket Modifikasi / Layanan Jasa */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-orange-500" />
-                <CardTitle className="text-base">2. Paket Jasa & Pengerjaan Modifikasi</CardTitle>
-              </div>
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border flex flex-row items-center gap-2 space-y-0">
+              <Wrench className="size-4 text-primary" aria-hidden="true" />
+              <CardTitle className="text-base font-semibold">
+                2. Paket Jasa &amp; Pengerjaan Modifikasi
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-5 space-y-3 text-xs">
-              <div className="divide-y divide-slate-100 dark:divide-zinc-800">
-                {servicesCatalog.map((service) => (
-                  <label
-                    key={service.id}
-                    className="py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800/40 px-2 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedServices.includes(service.id)}
-                        onChange={() => toggleService(service.id)}
-                        className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
-                      />
-                      <span className="font-semibold text-slate-900 dark:text-white">
-                        {service.nama}
+            <CardContent className="p-5 text-xs">
+              <div className="divide-y divide-border">
+                {servicesCatalog.map((service) => {
+                  const checked = selectedServices.includes(service.id);
+                  return (
+                    <label
+                      key={service.id}
+                      className="py-2.5 px-2 flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleService(service.id)}
+                        />
+                        <span className="font-semibold text-foreground">
+                          {service.nama}
+                        </span>
+                      </div>
+                      <span className="font-bold tabular-nums text-foreground">
+                        {formatCurrency(service.harga_dasar)}
                       </span>
-                    </div>
-                    <span className="font-bold text-slate-700 dark:text-zinc-300">
-                      {formatCurrency(service.harga_dasar)}
-                    </span>
-                  </label>
-                ))}
+                    </label>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
 
           {/* 3. Suku Cadang & Komponen Tambahan */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-orange-500" />
-                <CardTitle className="text-base">3. Suku Cadang & Komponen Kustom</CardTitle>
-              </div>
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border flex flex-row items-center gap-2 space-y-0">
+              <Package className="size-4 text-primary" aria-hidden="true" />
+              <CardTitle className="text-base font-semibold">
+                3. Suku Cadang &amp; Komponen Kustom
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4 text-xs">
-              {/* Tambah komponen */}
               <div className="flex flex-col sm:flex-row items-center gap-3">
                 <div className="flex-1 w-full">
-                  <select
-                    value={selectedPartId}
-                    onChange={(e) => setSelectedPartId(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                  <Select
+                    value={selectedPartId ? String(selectedPartId) : ""}
+                    onValueChange={(val) => setSelectedPartId(Number(val))}
                   >
-                    {sparePartsCatalog.map((part) => (
-                      <option key={part.id} value={part.id}>
-                        {part.nama} (Stok: {part.stok}) — {formatCurrency(part.harga_jual)}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 text-xs" aria-label="Pilih suku cadang">
+                      <SelectValue placeholder="Pilih suku cadang" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sparePartsCatalog.map((part) => (
+                        <SelectItem key={part.id} value={String(part.id)}>
+                          {part.nama} (Stok: {part.stok}) &mdash;{" "}
+                          {formatCurrency(part.harga_jual)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="w-full sm:w-24">
-                  <input
+                  <Input
                     type="number"
                     min="1"
                     value={selectedPartQty}
                     onChange={(e) => setSelectedPartQty(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs font-mono"
+                    aria-label="Jumlah suku cadang"
+                    className="h-9 text-xs font-mono tabular-nums"
                     placeholder="Jml"
                   />
                 </div>
@@ -378,84 +427,90 @@ export function BuatPesananWrapper({
                   onClick={handleAddPart}
                   className="w-full sm:w-auto h-9"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  <Plus className="size-3.5" aria-hidden="true" />
                   <span>Tambah</span>
                 </Button>
               </div>
 
-              {/* List Suku Cadang yang Dipilih */}
               {orderParts.length > 0 && (
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                      <tr>
-                        <th className="py-2 px-3">Komponen</th>
-                        <th className="py-2 px-3 text-center">Jml</th>
-                        <th className="py-2 px-3 text-right">Harga</th>
-                        <th className="py-2 px-3 text-right">Subtotal</th>
-                        <th className="py-2 px-3 text-center">Hapus</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <Table className="text-xs">
+                    <TableHeader className="bg-muted/60">
+                      <TableRow>
+                        <TableHead className="px-3">Komponen</TableHead>
+                        <TableHead className="px-3 text-center">Jml</TableHead>
+                        <TableHead className="px-3 text-right">Harga</TableHead>
+                        <TableHead className="px-3 text-right">Subtotal</TableHead>
+                        <TableHead className="px-3 text-center">Hapus</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {orderParts.map((p) => (
-                        <tr key={p.sukuCadangId}>
-                          <td className="py-2 px-3 font-medium">{p.nama}</td>
-                          <td className="py-2 px-3 text-center font-mono">{p.jumlah}</td>
-                          <td className="py-2 px-3 text-right">{formatCurrency(p.harga)}</td>
-                          <td className="py-2 px-3 text-right font-bold">
+                        <TableRow key={p.sukuCadangId}>
+                          <TableCell className="px-3 font-medium">
+                            {p.nama}
+                          </TableCell>
+                          <TableCell className="px-3 text-center font-mono tabular-nums">
+                            {p.jumlah}
+                          </TableCell>
+                          <TableCell className="px-3 text-right tabular-nums">
+                            {formatCurrency(p.harga)}
+                          </TableCell>
+                          <TableCell className="px-3 text-right font-bold tabular-nums">
                             {formatCurrency(p.harga * p.jumlah)}
-                          </td>
-                          <td className="py-2 px-3 text-center">
-                            <button
+                          </TableCell>
+                          <TableCell className="px-3 text-center">
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="icon-xs"
                               onClick={() => handleRemovePart(p.sukuCadangId)}
-                              className="text-rose-500 hover:text-rose-700"
+                              aria-label={`Hapus ${p.nama}`}
+                              className="text-destructive hover:text-destructive"
                             >
-                              <Trash2 className="w-3.5 h-3.5 mx-auto" />
-                            </button>
-                          </td>
-                        </tr>
+                              <Trash2 className="size-3.5" aria-hidden="true" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* 4. Template Tahapan Pengerjaan */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2">
-                <ListOrdered className="w-4 h-4 text-orange-500" />
-                <CardTitle className="text-base">4. Template Tahapan Pengerjaan</CardTitle>
-              </div>
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border flex flex-row items-center gap-2 space-y-0">
+              <ListOrdered className="size-4 text-primary" aria-hidden="true" />
+              <CardTitle className="text-base font-semibold">
+                4. Template Tahapan Pengerjaan
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-2 text-xs">
-              <p className="text-slate-500 dark:text-zinc-400 mb-2">
+              <p className="text-muted-foreground mb-2">
                 Pilih tahapan alur modifikasi yang akan dijalankan oleh montir:
               </p>
               <div className="space-y-1.5">
                 {stages.map((stg) => (
                   <label
                     key={stg.id}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800/40 cursor-pointer"
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={stg.selected}
-                        onChange={() => toggleStage(stg.id)}
-                        className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
+                        onCheckedChange={() => toggleStage(stg.id)}
                       />
-                      <span className="font-medium text-slate-900 dark:text-white">
+                      <span className="font-medium text-foreground">
                         {stg.urutan}. {stg.nama}
                       </span>
                     </div>
                     {stg.wajib_foto && (
-                      <span className="text-[10px] bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-400 px-2 py-0.5 rounded font-semibold">
+                      <Badge variant="info" className="text-[10px]">
                         Wajib Foto
-                      </span>
+                      </Badge>
                     )}
                   </label>
                 ))}
@@ -464,63 +519,73 @@ export function BuatPesananWrapper({
           </Card>
         </div>
 
-        {/* Kolom Samping: Ringkasan Biaya & Submit (4 kolom) */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-base">Ringkasan Estimasi Biaya</CardTitle>
+        {/* Kolom Samping: Ringkasan Biaya & Submit */}
+        <div className="lg:col-span-4">
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border">
+              <CardTitle className="text-base font-semibold">
+                Ringkasan Estimasi Biaya
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4 text-xs">
-              <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-zinc-800">
-                <div className="flex justify-between text-slate-600 dark:text-zinc-400">
+              <div className="space-y-2">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal Jasa ({selectedServices.length} item)</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">
+                  <span className="font-semibold tabular-nums text-foreground">
                     {formatCurrency(subtotalJasa)}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-600 dark:text-zinc-400">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal Suku Cadang ({orderParts.length} item)</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">
+                  <span className="font-semibold tabular-nums text-foreground">
                     {formatCurrency(subtotalParts)}
                   </span>
                 </div>
               </div>
 
-              <div className="flex justify-between items-baseline pt-1">
-                <span className="font-bold text-sm text-slate-900 dark:text-white">
+              <Separator />
+
+              <div className="flex justify-between items-baseline">
+                <span className="font-bold text-sm text-foreground">
                   Total Estimasi:
                 </span>
-                <span className="text-xl font-black text-orange-600 dark:text-orange-400">
+                <span className="text-xl font-black tabular-nums text-primary">
                   {formatCurrency(totalEstimasi)}
                 </span>
               </div>
 
               <div className="space-y-1.5 pt-2">
-                <label className="font-semibold block">Perkiraan Tanggal Selesai</label>
-                <input
+                <Label htmlFor="order-date" className="text-xs font-semibold">
+                  Perkiraan Tanggal Selesai
+                </Label>
+                <Input
+                  id="order-date"
                   type="date"
                   required
                   value={perkiraanSelesai}
                   onChange={(e) => setPerkiraanSelesai(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                  className="h-9 text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-semibold block">Catatan / Konsep Kustom</label>
-                <textarea
+                <Label htmlFor="order-notes" className="text-xs font-semibold">
+                  Catatan / Konsep Kustom
+                </Label>
+                <Textarea
+                  id="order-notes"
                   rows={3}
                   value={catatan}
                   onChange={(e) => setCatatan(e.target.value)}
                   placeholder="Catatan konsep motor, warna yang diinginkan, dsb..."
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                  className="text-xs"
                 />
               </div>
 
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 text-xs font-semibold mt-4"
+                className="w-full h-10 text-xs font-semibold"
               >
                 {isSubmitting ? "Menyimpan Pesanan..." : "Buat Pesanan Modifikasi"}
               </Button>

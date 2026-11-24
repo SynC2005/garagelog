@@ -14,10 +14,18 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
   ExternalLink,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 interface StaffLayoutProps {
@@ -62,125 +70,142 @@ export function StaffLayout({
     } catch {}
   }, []);
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100 flex">
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 z-40 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold">
-            <Wrench className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-base tracking-tight">
-            Garage<span className="text-orange-500">Log</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            aria-label="Toggle menu"
+  const handleLogout = () => {
+    try {
+      sessionStorage.removeItem("active_user");
+    } catch {}
+  };
+
+  const SidebarBrand = (
+    <Link
+      href="/dashboard"
+      onClick={() => setMobileMenuOpen(false)}
+      className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
+    >
+      <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
+        <Wrench className="size-4" aria-hidden="true" />
+      </div>
+      <div>
+        <span className="font-bold text-base tracking-tight text-foreground">
+          Garage<span className="text-primary">Log</span>
+        </span>
+        <p className="text-[11px] text-muted-foreground font-medium -mt-0.5">
+          POS &amp; Progres Bengkel
+        </p>
+      </div>
+    </Link>
+  );
+
+  const SidebarNav = (
+    <nav className="flex-1 overflow-y-auto p-3 space-y-1" aria-label="Navigasi Staf">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive =
+          pathname === item.href ||
+          (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={isActive ? "page" : undefined}
+            onClick={() => setMobileMenuOpen(false)}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isActive
+                ? "bg-primary/10 text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+            <Icon
+              className={cn(
+                "size-4 shrink-0",
+                isActive ? "text-primary" : "text-muted-foreground"
+              )}
+              aria-hidden="true"
+            />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  const SidebarFooter = (
+    <div className="p-4 border-t border-border space-y-3">
+      <Link
+        href="/lacak"
+        target="_blank"
+        className="flex items-center justify-between text-xs text-muted-foreground hover:text-primary px-1 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span>Buka Lacak Publik</span>
+        <ExternalLink className="size-3.5" aria-hidden="true" />
+      </Link>
+
+      <Separator />
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground leading-tight truncate">
+            {currentUser.nama}
+          </p>
+          <p className="text-xs text-primary font-medium mt-0.5">
+            Peran: {currentUser.peran}
+          </p>
         </div>
+        <ThemeToggle />
       </div>
 
-      {/* Sidebar for Desktop & Mobile Overlay */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 dark:bg-zinc-900 dark:border-zinc-800 flex flex-col justify-between transition-transform duration-200 lg:translate-x-0 lg:static",
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        {/* Top: Logo & Nav items */}
-        <div>
-          {/* Logo Area */}
-          <div className="h-16 px-6 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold">
-                <Wrench className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
-                  Garage<span className="text-orange-500">Log</span>
-                </span>
-                <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium -mt-0.5">
-                  POS & Progres Bengkel
-                </p>
-              </div>
-            </Link>
-          </div>
+      <Button asChild variant="outline" size="sm" className="w-full justify-center">
+        <Link href="/masuk" onClick={handleLogout}>
+          <LogOut className="size-3.5 text-destructive" aria-hidden="true" />
+          <span>Keluar</span>
+        </Link>
+      </Button>
+    </div>
+  );
 
-          {/* Nav List */}
-          <nav className="p-3 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 font-semibold"
-                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/60"
-                  )}
-                >
-                  <Icon className={cn("w-4 h-4", isActive ? "text-orange-500" : "text-slate-400 dark:text-zinc-500")} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+  return (
+    <div className="min-h-dvh bg-background text-foreground flex flex-col lg:flex-row">
+      {/* Mobile Header + Sheet Drawer */}
+      <header className="lg:hidden sticky top-0 z-40 h-16 bg-card border-b border-border px-4 flex items-center justify-between">
+        {SidebarBrand}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Buka menu navigasi"
+              >
+                <Menu className="size-4" aria-hidden="true" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0 flex flex-col justify-between">
+              <SheetHeader className="h-16 px-5 border-b border-border flex flex-row items-center justify-between space-y-0">
+                <SheetTitle className="sr-only">Menu Navigasi GarageLog</SheetTitle>
+                {SidebarBrand}
+              </SheetHeader>
+              {SidebarNav}
+              {SidebarFooter}
+            </SheetContent>
+          </Sheet>
         </div>
+      </header>
 
-        {/* Bottom: Staff info, Theme toggle & Logout */}
-        <div className="p-4 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
-          <Link
-            href="/lacak"
-            target="_blank"
-            className="flex items-center justify-between text-xs text-slate-500 hover:text-orange-600 dark:text-zinc-400 dark:hover:text-orange-400 px-1 transition-colors"
-          >
-            <span>Buka Lacak Publik</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-
-          <div className="flex items-center justify-between pt-2">
-            <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                {currentUser.nama}
-              </p>
-              <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">
-                Peran: {currentUser.peran}
-              </p>
-            </div>
-            <ThemeToggle />
-          </div>
-
-          <Link
-            href="/masuk"
-            onClick={() => {
-              try {
-                sessionStorage.removeItem("active_user");
-              } catch {}
-            }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5 text-rose-500" />
-            <span>Keluar</span>
-          </Link>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:h-dvh bg-card border-r border-border justify-between">
+        <div className="h-16 px-5 border-b border-border flex items-center">
+          {SidebarBrand}
         </div>
+        {SidebarNav}
+        {SidebarFooter}
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full pt-16 lg:pt-0 min-h-screen overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto">
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
           {children}
         </div>
@@ -188,4 +213,3 @@ export function StaffLayout({
     </div>
   );
 }
-

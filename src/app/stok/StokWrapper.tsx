@@ -1,14 +1,53 @@
 "use client";
 
 import * as React from "react";
-import { Boxes, Plus, Search, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import {
+  Boxes,
+  Plus,
+  Search,
+  AlertTriangle,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
+import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDateTime } from "@/utils/formatDate";
-import { adjustStockAction, createPartAction, updatePartAction } from "@/server/api/stok/stokApi";
+import {
+  adjustStockAction,
+  createPartAction,
+  updatePartAction,
+} from "@/server/api/stok/stokApi";
 import { JenisPergerakanStok } from "@prisma/client";
 
 interface SukuCadangItem {
@@ -20,7 +59,7 @@ interface SukuCadangItem {
   stok_minimum: number;
 }
 
-interface PergerakanStokItem {
+interface StockMovementItem {
   id: number;
   waktu: Date;
   sukuCadangId: number;
@@ -35,12 +74,16 @@ interface PergerakanStokItem {
 
 interface StokWrapperProps {
   initialItems: SukuCadangItem[];
-  initialMovements: any[];
+  initialMovements: StockMovementItem[];
 }
 
-export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps) {
+export function StokWrapper({
+  initialItems,
+  initialMovements,
+}: StokWrapperProps) {
   const [items, setItems] = React.useState<SukuCadangItem[]>(initialItems);
-  const [movements, setMovements] = React.useState<PergerakanStokItem[]>(initialMovements);
+  const [movements, setMovements] =
+    React.useState<StockMovementItem[]>(initialMovements);
 
   React.useEffect(() => {
     setItems(initialItems);
@@ -57,11 +100,16 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
   const [selectedItemId, setSelectedItemId] = React.useState<number>(
     initialItems.length > 0 ? initialItems[0].id : 0
   );
-  const [movementType, setMovementType] = React.useState<"masuk" | "koreksi">("masuk");
+  const [movementType, setMovementType] = React.useState<"masuk" | "koreksi">(
+    "masuk"
+  );
   const [amount, setAmount] = React.useState("1");
   const [reason, setReason] = React.useState("");
   const [isSubmittingMovement, setIsSubmittingMovement] = React.useState(false);
-  const [feedback, setFeedback] = React.useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = React.useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const selectedItem = items.find((i) => i.id === selectedItemId);
 
@@ -82,9 +130,10 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
   const [editMinStok, setEditMinStok] = React.useState("");
   const [isUpdatingPart, setIsUpdatingPart] = React.useState(false);
 
-  // Stats calculation
   const totalJenis = items.length;
-  const totalMenipis = items.filter((i) => i.stok > 0 && i.stok <= i.stok_minimum).length;
+  const totalMenipis = items.filter(
+    (i) => i.stok > 0 && i.stok <= i.stok_minimum
+  ).length;
   const totalHabis = items.filter((i) => i.stok === 0).length;
 
   const filteredItems = items.filter((item) => {
@@ -105,28 +154,43 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
   const handleSaveMovement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) {
-      setFeedback({ type: "error", message: "Alasan wajib diisi untuk setiap pergerakan atau koreksi stok!" });
+      setFeedback({
+        type: "error",
+        message: "Alasan wajib diisi untuk setiap pergerakan atau koreksi stok!",
+      });
       return;
     }
 
     if (!selectedItemId) {
-      setFeedback({ type: "error", message: "Pilih suku cadang terlebih dahulu." });
+      setFeedback({
+        type: "error",
+        message: "Pilih suku cadang terlebih dahulu.",
+      });
       return;
     }
 
     const qty = Number(amount);
     if (isNaN(qty)) {
-      setFeedback({ type: "error", message: "Masukkan jumlah angka yang valid." });
+      setFeedback({
+        type: "error",
+        message: "Masukkan jumlah angka yang valid.",
+      });
       return;
     }
 
     if (movementType === "masuk" && qty <= 0) {
-      setFeedback({ type: "error", message: "Jumlah barang masuk harus lebih besar dari 0." });
+      setFeedback({
+        type: "error",
+        message: "Jumlah barang masuk harus lebih besar dari 0.",
+      });
       return;
     }
 
     if (movementType === "koreksi" && qty < 0) {
-      setFeedback({ type: "error", message: "Jumlah stok fisik tidak boleh bernilai negatif." });
+      setFeedback({
+        type: "error",
+        message: "Jumlah stok fisik tidak boleh bernilai negatif.",
+      });
       return;
     }
 
@@ -135,7 +199,10 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
 
     const res = await adjustStockAction({
       sukuCadangId: selectedItemId,
-      jenis: movementType === "masuk" ? JenisPergerakanStok.masuk : JenisPergerakanStok.koreksi,
+      jenis:
+        movementType === "masuk"
+          ? JenisPergerakanStok.masuk
+          : JenisPergerakanStok.koreksi,
       jumlah: qty,
       alasan: reason.trim(),
     });
@@ -145,10 +212,15 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
     if (res.success && res.data) {
       const updatedItem = res.data;
       const target = items.find((i) => i.id === selectedItemId);
-      const delta = movementType === "masuk" ? qty : updatedItem.stok - (target?.stok ?? 0);
+      const delta =
+        movementType === "masuk"
+          ? qty
+          : updatedItem.stok - (target?.stok ?? 0);
 
       setItems((prev) =>
-        prev.map((i) => (i.id === updatedItem.id ? { ...i, stok: updatedItem.stok } : i))
+        prev.map((i) =>
+          i.id === updatedItem.id ? { ...i, stok: updatedItem.stok } : i
+        )
       );
 
       setMovements((prev) => [
@@ -156,7 +228,10 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
           id: Date.now(),
           waktu: new Date(),
           sukuCadangId: selectedItemId,
-          jenis: movementType === "masuk" ? JenisPergerakanStok.masuk : JenisPergerakanStok.koreksi,
+          jenis:
+            movementType === "masuk"
+              ? JenisPergerakanStok.masuk
+              : JenisPergerakanStok.koreksi,
           jumlah: delta,
           alasan: reason.trim(),
           sukuCadang: {
@@ -167,13 +242,13 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
         ...prev,
       ]);
 
-      setFeedback({
-        type: "success",
-        message:
-          movementType === "koreksi"
-            ? `Stok barang "${target?.nama}" berhasil dikoreksi menjadi ${updatedItem.stok} unit (selisih: ${delta >= 0 ? `+${delta}` : delta}).`
-            : `Berhasil menambah ${qty} unit ke stok "${target?.nama}". Total stok sekarang: ${updatedItem.stok} unit.`,
-      });
+      const msg =
+        movementType === "koreksi"
+          ? `Stok barang "${target?.nama}" berhasil dikoreksi menjadi ${updatedItem.stok} unit (selisih: ${delta >= 0 ? `+${delta}` : delta}).`
+          : `Berhasil menambah ${qty} unit ke stok "${target?.nama}". Total stok sekarang: ${updatedItem.stok} unit.`;
+
+      setFeedback({ type: "success", message: msg });
+      toast.success(msg);
       setReason("");
       if (movementType === "koreksi") {
         setAmount(String(updatedItem.stok));
@@ -182,14 +257,17 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
       }
       setTimeout(() => setFeedback(null), 4000);
     } else {
-      setFeedback({ type: "error", message: res.error || "Gagal mencatat pergerakan stok." });
+      setFeedback({
+        type: "error",
+        message: res.error || "Gagal mencatat pergerakan stok.",
+      });
     }
   };
 
   const handleCreatePart = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addNama.trim() || !addSKU.trim() || !addHarga) {
-      alert("Nama barang, SKU, dan harga jual wajib diisi!");
+      toast.error("Nama barang, SKU, dan harga jual wajib diisi!");
       return;
     }
 
@@ -211,10 +289,14 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
       setAddHarga("");
       setAddStok("0");
       setAddMinStok("1");
-      setFeedback({ type: "success", message: `Suku cadang "${res.data.nama}" berhasil ditambahkan!` });
+      toast.success(`Suku cadang "${res.data.nama}" berhasil ditambahkan!`);
+      setFeedback({
+        type: "success",
+        message: `Suku cadang "${res.data.nama}" berhasil ditambahkan!`,
+      });
       setTimeout(() => setFeedback(null), 4000);
     } else {
-      alert(res.error || "Gagal menambahkan suku cadang.");
+      toast.error(res.error || "Gagal menambahkan suku cadang.");
     }
   };
 
@@ -244,10 +326,14 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
         prev.map((i) => (i.id === editItem.id ? { ...i, ...res.data } : i))
       );
       setEditItem(null);
-      setFeedback({ type: "success", message: `Data "${res.data.nama}" berhasil diperbarui!` });
+      toast.success(`Data "${res.data.nama}" berhasil diperbarui!`);
+      setFeedback({
+        type: "success",
+        message: `Data "${res.data.nama}" berhasil diperbarui!`,
+      });
       setTimeout(() => setFeedback(null), 4000);
     } else {
-      alert(res.error || "Gagal memperbarui suku cadang.");
+      toast.error(res.error || "Gagal memperbarui suku cadang.");
     }
   };
 
@@ -256,249 +342,283 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Stok Suku Cadang & Aksesori
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Stok Suku Cadang &amp; Aksesori
           </h1>
-          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-            Pengelolaan inventori barang, pencatatan barang masuk, dan audit koreksi stok fisik.
+          <p className="text-sm text-muted-foreground mt-1">
+            Pengelolaan inventori barang, pencatatan barang masuk, dan audit
+            koreksi stok fisik.
           </p>
         </div>
 
         <Button
+          size="sm"
           className="w-full sm:w-auto"
           onClick={() => setShowAddModal(true)}
         >
-          <Plus className="w-4 h-4 mr-1.5" />
-          <span>+ Barang</span>
+          <Plus className="size-4" aria-hidden="true" />
+          <span>Tambah Barang</span>
         </Button>
       </div>
 
-      {/* 3 KPI Stat Cards Sesuai Wireframe Page 9 */}
+      {/* 3 KPI Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+        <Card className="py-0 gap-0">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">Jenis barang</p>
-              <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">
+              <p className="text-xs font-medium text-muted-foreground">
+                Jenis barang
+              </p>
+              <p className="text-3xl font-extrabold tabular-nums text-foreground mt-1">
                 {String(totalJenis).padStart(2, "0")}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 flex items-center justify-center font-bold">
-              <Boxes className="w-5 h-5" />
+            <div className="size-11 rounded-lg bg-muted text-foreground flex items-center justify-center">
+              <Boxes className="size-5" aria-hidden="true" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="py-0 gap-0">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">Stok menipis</p>
-              <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">
+              <p className="text-xs font-medium text-muted-foreground">
+                Stok menipis
+              </p>
+              <p className="text-3xl font-extrabold tabular-nums text-amber-600 dark:text-amber-400 mt-1">
                 {String(totalMenipis).padStart(2, "0")}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="size-11 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <AlertTriangle className="size-5" aria-hidden="true" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="py-0 gap-0">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">Stok habis</p>
-              <p className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1">
+              <p className="text-xs font-medium text-muted-foreground">
+                Stok habis
+              </p>
+              <p className="text-3xl font-extrabold tabular-nums text-destructive mt-1">
                 {String(totalHabis).padStart(2, "0")}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="size-11 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
+              <AlertTriangle className="size-5" aria-hidden="true" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabel Suku Cadang Sesuai Wireframe Page 9 */}
-      <Card>
-        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800">
+      {/* Tabel Suku Cadang */}
+      <Card className="py-0 gap-0 overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 border-b border-border">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
             <div className="sm:col-span-8 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-3.5 h-3.5" />
-              </div>
-              <input
+              <Search
+                className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                aria-hidden="true"
+              />
+              <Input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                aria-label="Cari suku cadang"
                 placeholder="Cari nama atau SKU suku cadang..."
-                className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                className="pl-8 h-9 text-xs"
               />
             </div>
 
             <div className="sm:col-span-4">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
-              >
-                <option value="semua">Semua barang</option>
-                <option value="aman">Stok Aman</option>
-                <option value="menipis">Stok Menipis</option>
-                <option value="habis">Stok Habis</option>
-              </select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full h-9 text-xs" aria-label="Filter status stok">
+                  <SelectValue placeholder="Semua barang" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua barang</SelectItem>
+                  <SelectItem value="aman">Stok Aman</SelectItem>
+                  <SelectItem value="menipis">Stok Menipis</SelectItem>
+                  <SelectItem value="habis">Stok Habis</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                <tr>
-                  <th className="py-2.5 px-4 font-mono">SKU</th>
-                  <th className="py-2.5 px-4">Nama Barang</th>
-                  <th className="py-2.5 px-4 text-center">Stok</th>
-                  <th className="py-2.5 px-4 text-center">Minimum</th>
-                  <th className="py-2.5 px-4 text-right">Harga Jual</th>
-                  <th className="py-2.5 px-4 text-center">Status</th>
-                  <th className="py-2.5 px-4 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
-                {filteredItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400 dark:text-zinc-500">
-                      Tidak ada suku cadang yang sesuai filter.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredItems.map((item) => {
-                    const isHabis = item.stok === 0;
-                    const isMenipis = item.stok > 0 && item.stok <= item.stok_minimum;
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                        <td className="py-3 px-4 font-mono font-semibold text-slate-600 dark:text-zinc-400">
-                          {item.SKU}
-                        </td>
-                        <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
-                          {item.nama}
-                        </td>
-                        <td className="py-3 px-4 text-center font-bold text-slate-900 dark:text-white">
-                          {item.stok}
-                        </td>
-                        <td className="py-3 px-4 text-center text-slate-500">{item.stok_minimum}</td>
-                        <td className="py-3 px-4 text-right font-medium text-slate-900 dark:text-white">
-                          {formatCurrency(item.harga_jual)}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <Badge
-                            variant={isHabis ? "danger" : isMenipis ? "pending" : "ready"}
-                            className="text-[10px] px-2.5"
-                          >
-                            {isHabis ? "Habis" : isMenipis ? "Menipis" : "Aman"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 px-2 text-[11px]"
-                            onClick={() => handleOpenEdit(item)}
-                          >
-                            Ubah
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table className="text-xs">
+            <TableHeader className="bg-muted/60">
+              <TableRow>
+                <TableHead className="px-4 font-mono">SKU</TableHead>
+                <TableHead className="px-4">Nama Barang</TableHead>
+                <TableHead className="px-4 text-center">Stok</TableHead>
+                <TableHead className="px-4 text-center">Minimum</TableHead>
+                <TableHead className="px-4 text-right">Harga Jual</TableHead>
+                <TableHead className="px-4 text-center">Status</TableHead>
+                <TableHead className="px-4 text-center">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredItems.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="py-8 text-center text-muted-foreground"
+                  >
+                    Tidak ada suku cadang yang sesuai filter.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredItems.map((item) => {
+                  const isHabis = item.stok === 0;
+                  const isMenipis =
+                    item.stok > 0 && item.stok <= item.stok_minimum;
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="px-4 py-3 font-mono font-semibold text-muted-foreground">
+                        {item.SKU}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 font-medium text-foreground">
+                        {item.nama}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center font-bold tabular-nums text-foreground">
+                        {item.stok}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center tabular-nums text-muted-foreground">
+                        {item.stok_minimum}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-right font-medium tabular-nums text-foreground">
+                        {formatCurrency(item.harga_jual)}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center">
+                        <Badge
+                          variant={
+                            isHabis ? "danger" : isMenipis ? "pending" : "ready"
+                          }
+                          className="text-[10px]"
+                        >
+                          {isHabis ? "Habis" : isMenipis ? "Menipis" : "Aman"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center">
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleOpenEdit(item)}
+                        >
+                          Ubah
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
-      {/* Grid Bawah: Barang Masuk / Koreksi & Riwayat Pergerakan Sesuai Wireframe Page 9 */}
+      {/* Grid Bawah: Barang Masuk / Koreksi & Riwayat Pergerakan */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Form Barang Masuk atau Koreksi (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-base">Barang Masuk atau Koreksi</CardTitle>
+        <div className="lg:col-span-5">
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border">
+              <CardTitle className="text-base font-semibold">
+                Barang Masuk atau Koreksi
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              <form onSubmit={handleSaveMovement} className="space-y-3.5 text-xs">
+              <form onSubmit={handleSaveMovement} className="space-y-4 text-xs">
                 {feedback && (
-                  <div
-                    className={`p-3 rounded-lg border flex items-center gap-2 ${
+                  <Alert
+                    variant={
+                      feedback.type === "error" ? "destructive" : "default"
+                    }
+                    className={
                       feedback.type === "success"
-                        ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 text-emerald-800 dark:text-emerald-300"
-                        : "bg-rose-50 dark:bg-rose-950/60 border-rose-200 text-rose-800 dark:text-rose-300"
-                    }`}
+                        ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+                        : undefined
+                    }
                   >
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>{feedback.message}</span>
-                  </div>
+                    {feedback.type === "success" ? (
+                      <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="size-4" />
+                    )}
+                    <AlertDescription className="text-xs text-current">
+                      {feedback.message}
+                    </AlertDescription>
+                  </Alert>
                 )}
 
-                <div>
-                  <label className="font-semibold block mb-1">Pilih Barang</label>
-                  <select
-                    value={selectedItemId}
-                    onChange={(e) => {
-                      const newId = Number(e.target.value);
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Pilih Barang</Label>
+                  <Select
+                    value={selectedItemId ? String(selectedItemId) : ""}
+                    onValueChange={(val) => {
+                      const newId = Number(val);
                       setSelectedItemId(newId);
                       if (movementType === "koreksi") {
                         const target = items.find((i) => i.id === newId);
                         if (target) setAmount(String(target.stok));
                       }
                     }}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
                   >
-                    {items.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.nama} ({i.SKU}) — Stok: {i.stok}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 text-xs">
+                      <SelectValue placeholder="Pilih barang" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {items.map((i) => (
+                        <SelectItem key={i.id} value={String(i.id)}>
+                          {i.nama} ({i.SKU}) &mdash; Stok: {i.stok}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="flex items-center gap-6 pt-1 font-semibold">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="mType"
-                      checked={movementType === "masuk"}
-                      onChange={() => {
-                        setMovementType("masuk");
-                        setAmount("1");
-                      }}
-                      className="text-orange-600 focus:ring-orange-500 cursor-pointer"
-                    />
-                    <span>Barang masuk</span>
-                  </label>
+                <RadioGroup
+                  value={movementType}
+                  onValueChange={(val) => {
+                    const m = val as "masuk" | "koreksi";
+                    setMovementType(m);
+                    if (m === "masuk") {
+                      setAmount("1");
+                    } else {
+                      setAmount(String(selectedItem?.stok ?? 0));
+                    }
+                  }}
+                  className="flex items-center gap-6 pt-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="masuk" id="stok-masuk" />
+                    <Label
+                      htmlFor="stok-masuk"
+                      className="text-xs font-semibold cursor-pointer"
+                    >
+                      Barang masuk
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="koreksi" id="stok-koreksi" />
+                    <Label
+                      htmlFor="stok-koreksi"
+                      className="text-xs font-semibold cursor-pointer"
+                    >
+                      Koreksi stok
+                    </Label>
+                  </div>
+                </RadioGroup>
 
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="mType"
-                      checked={movementType === "koreksi"}
-                      onChange={() => {
-                        setMovementType("koreksi");
-                        setAmount(String(selectedItem?.stok ?? 0));
-                      }}
-                      className="text-orange-600 focus:ring-orange-500 cursor-pointer"
-                    />
-                    <span>Koreksi stok</span>
-                  </label>
-                </div>
-
-                <div>
-                  <label className="font-semibold block mb-1">
+                <div className="space-y-1.5">
+                  <Label htmlFor="stok-amount" className="text-xs font-semibold">
                     {movementType === "masuk"
                       ? "Jumlah Barang Masuk (Unit)"
                       : "Stok Fisik Sebenarnya (Hasil Opname)"}
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="stok-amount"
                     type="number"
                     min={movementType === "masuk" ? "1" : "0"}
                     required
@@ -511,26 +631,29 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                         ? `Stok saat ini ${selectedItem.stok}. Masukkan stok fisik riil`
                         : "Contoh: 3"
                     }
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs font-mono"
+                    className="h-9 text-xs font-mono tabular-nums"
                   />
                   {movementType === "koreksi" && selectedItem && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                      Stok saat ini di sistem: <strong>{selectedItem.stok} unit</strong>. Nilai yang Anda masukkan akan langsung menjadi jumlah stok akhir.
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                      Stok saat ini di sistem:{" "}
+                      <strong>{selectedItem.stok} unit</strong>. Nilai yang Anda
+                      masukkan akan langsung menjadi jumlah stok akhir.
                     </p>
                   )}
                 </div>
 
-                <div>
-                  <label className="font-semibold block mb-1">
-                    Alasan Pergerakan <span className="text-rose-500">*</span>
-                  </label>
-                  <input
+                <div className="space-y-1.5">
+                  <Label htmlFor="stok-reason" className="text-xs font-semibold">
+                    Alasan Pergerakan <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="stok-reason"
                     type="text"
                     required
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Wajib diisi (misal: Restok supplier Jaya Motor / Rusak / Hilang)"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                    className="h-9 text-xs"
                   />
                 </div>
 
@@ -538,50 +661,57 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                   type="submit"
                   size="sm"
                   disabled={isSubmittingMovement}
-                  className="w-full text-xs font-semibold pt-1"
+                  className="w-full text-xs font-semibold"
                 >
-                  {isSubmittingMovement ? "Menyimpan..." : "Simpan Pergerakan Stok"}
+                  {isSubmittingMovement
+                    ? "Menyimpan..."
+                    : "Simpan Pergerakan Stok"}
                 </Button>
               </form>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabel Riwayat Pergerakan Stok (7 cols) */}
-        <div className="lg:col-span-7 space-y-4">
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-base">Riwayat Pergerakan Stok</CardTitle>
+        {/* Tabel Riwayat Pergerakan Stok */}
+        <div className="lg:col-span-7">
+          <Card className="py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 border-b border-border">
+              <CardTitle className="text-base font-semibold">
+                Riwayat Pergerakan Stok
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto max-h-[380px] overflow-y-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800 sticky top-0 z-10">
-                    <tr>
-                      <th className="py-2.5 px-3">Waktu</th>
-                      <th className="py-2.5 px-3">Barang</th>
-                      <th className="py-2.5 px-3 text-center">Jenis</th>
-                      <th className="py-2.5 px-3 text-center">Jml</th>
-                      <th className="py-2.5 px-3">Alasan</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+              <div className="max-h-[380px] overflow-y-auto">
+                <Table className="text-xs">
+                  <TableHeader className="bg-muted/60 sticky top-0 z-10">
+                    <TableRow>
+                      <TableHead className="px-3">Waktu</TableHead>
+                      <TableHead className="px-3">Barang</TableHead>
+                      <TableHead className="px-3 text-center">Jenis</TableHead>
+                      <TableHead className="px-3 text-center">Jml</TableHead>
+                      <TableHead className="px-3">Alasan</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {movements.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-6 text-center text-slate-400">
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="py-6 text-center text-muted-foreground"
+                        >
                           Belum ada pergerakan stok tercatat.
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ) : (
                       movements.map((m) => (
-                        <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                          <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">
+                        <TableRow key={m.id}>
+                          <TableCell className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
                             {formatDateTime(m.waktu)}
-                          </td>
-                          <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white max-w-[150px] truncate">
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 font-medium text-foreground max-w-[150px] truncate">
                             {m.sukuCadang?.nama || "Suku Cadang"}
-                          </td>
-                          <td className="py-2.5 px-3 text-center">
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-center">
                             <Badge
                               variant={
                                 m.jenis === "masuk"
@@ -594,8 +724,8 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                             >
                               {m.jenis}
                             </Badge>
-                          </td>
-                          <td className="py-2.5 px-3 text-center font-mono font-bold">
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-center font-mono font-bold tabular-nums">
                             {m.jenis === "masuk"
                               ? `+${Math.abs(m.jumlah)}`
                               : m.jenis === "keluar"
@@ -603,189 +733,220 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                               : m.jumlah > 0
                               ? `+${m.jumlah}`
                               : `${m.jumlah}`}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600 dark:text-zinc-400 max-w-[180px] truncate">
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-muted-foreground max-w-[180px] truncate">
                             {m.alasan}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))
                     )}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Modal Tambah Barang Baru */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800 mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Tambah Suku Cadang Baru
-              </h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* Modal Tambah Barang Baru (shadcn Dialog) */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tambah Suku Cadang Baru</DialogTitle>
+            <DialogDescription className="text-xs">
+              Daftarkan master suku cadang baru beserta stok awal dan batas
+              minimum peringatan.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreatePart} className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-part-name" className="text-xs font-semibold">
+                Nama Suku Cadang / Aksesori
+              </Label>
+              <Input
+                id="add-part-name"
+                type="text"
+                required
+                value={addNama}
+                onChange={(e) => setAddNama(e.target.value)}
+                placeholder="Contoh: Knalpot Yoshimura R77 Full System"
+                className="h-9 text-xs"
+              />
             </div>
-            <form onSubmit={handleCreatePart} className="space-y-3 text-xs">
-              <div>
-                <label className="font-semibold block mb-1">Nama Suku Cadang / Aksesori</label>
-                <input
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-part-sku" className="text-xs font-semibold">
+                  Kode SKU
+                </Label>
+                <Input
+                  id="add-part-sku"
                   type="text"
                   required
-                  value={addNama}
-                  onChange={(e) => setAddNama(e.target.value)}
-                  placeholder="Contoh: Knalpot Yoshimura R77 Full System"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
+                  value={addSKU}
+                  onChange={(e) => setAddSKU(e.target.value.toUpperCase())}
+                  placeholder="SKU-KNL-006"
+                  className="h-9 text-xs font-mono uppercase"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold block mb-1">Kode SKU</label>
-                  <input
-                    type="text"
-                    required
-                    value={addSKU}
-                    onChange={(e) => setAddSKU(e.target.value.toUpperCase())}
-                    placeholder="SKU-KNL-006"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg font-mono uppercase"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold block mb-1">Harga Jual (Rp)</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={addHarga}
-                    onChange={(e) => setAddHarga(e.target.value)}
-                    placeholder="1500000"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg font-mono"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold block mb-1">Stok Awal</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={addStok}
-                    onChange={(e) => setAddStok(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold block mb-1">Batas Minimum Stok</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={addMinStok}
-                    onChange={(e) => setAddMinStok(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg font-mono"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddModal(false)}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="add-part-price"
+                  className="text-xs font-semibold"
                 >
-                  Batal
-                </Button>
-                <Button type="submit" size="sm" disabled={isAddingPart}>
-                  {isAddingPart ? "Menyimpan..." : "Simpan Barang"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Ubah Barang */}
-      {editItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800 mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Ubah Informasi Suku Cadang
-              </h3>
-              <button
-                onClick={() => setEditItem(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleUpdatePart} className="space-y-3 text-xs">
-              <div>
-                <label className="font-semibold block mb-1">Nama Suku Cadang</label>
-                <input
-                  type="text"
+                  Harga Jual (Rp)
+                </Label>
+                <Input
+                  id="add-part-price"
+                  type="number"
                   required
-                  value={editNama}
-                  onChange={(e) => setEditNama(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
+                  min="0"
+                  value={addHarga}
+                  onChange={(e) => setAddHarga(e.target.value)}
+                  placeholder="1500000"
+                  className="h-9 text-xs font-mono tabular-nums"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold block mb-1">Kode SKU</label>
-                  <input
-                    type="text"
-                    required
-                    value={editSKU}
-                    onChange={(e) => setEditSKU(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg font-mono uppercase"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold block mb-1">Harga Jual (Rp)</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={editHarga}
-                    onChange={(e) => setEditHarga(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg font-mono"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="font-semibold block mb-1">Batas Minimum Peringatan Stok</label>
-                <input
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="add-part-stock"
+                  className="text-xs font-semibold"
+                >
+                  Stok Awal
+                </Label>
+                <Input
+                  id="add-part-stock"
                   type="number"
                   min="0"
-                  value={editMinStok}
-                  onChange={(e) => setEditMinStok(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg font-mono"
+                  value={addStok}
+                  onChange={(e) => setAddStok(e.target.value)}
+                  className="h-9 text-xs font-mono tabular-nums"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setEditItem(null)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" size="sm" disabled={isUpdatingPart}>
-                  {isUpdatingPart ? "Menyimpan..." : "Simpan Perubahan"}
-                </Button>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-part-min" className="text-xs font-semibold">
+                  Batas Minimum Stok
+                </Label>
+                <Input
+                  id="add-part-min"
+                  type="number"
+                  min="0"
+                  value={addMinStok}
+                  onChange={(e) => setAddMinStok(e.target.value)}
+                  className="h-9 text-xs font-mono tabular-nums"
+                />
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+            <DialogFooter className="pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddModal(false)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={isAddingPart}>
+                {isAddingPart ? "Menyimpan..." : "Simpan Barang"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Ubah Barang (shadcn Dialog) */}
+      <Dialog
+        open={Boolean(editItem)}
+        onOpenChange={(open) => {
+          if (!open) setEditItem(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ubah Informasi Suku Cadang</DialogTitle>
+            <DialogDescription className="text-xs">
+              Perbarui nama, SKU, harga jual, atau batas peringatan minimum stok.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdatePart} className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-part-name" className="text-xs font-semibold">
+                Nama Suku Cadang
+              </Label>
+              <Input
+                id="edit-part-name"
+                type="text"
+                required
+                value={editNama}
+                onChange={(e) => setEditNama(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="edit-part-sku"
+                  className="text-xs font-semibold"
+                >
+                  Kode SKU
+                </Label>
+                <Input
+                  id="edit-part-sku"
+                  type="text"
+                  required
+                  value={editSKU}
+                  onChange={(e) => setEditSKU(e.target.value.toUpperCase())}
+                  className="h-9 text-xs font-mono uppercase"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="edit-part-price"
+                  className="text-xs font-semibold"
+                >
+                  Harga Jual (Rp)
+                </Label>
+                <Input
+                  id="edit-part-price"
+                  type="number"
+                  required
+                  min="0"
+                  value={editHarga}
+                  onChange={(e) => setEditHarga(e.target.value)}
+                  className="h-9 text-xs font-mono tabular-nums"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-part-min" className="text-xs font-semibold">
+                Batas Minimum Peringatan Stok
+              </Label>
+              <Input
+                id="edit-part-min"
+                type="number"
+                min="0"
+                value={editMinStok}
+                onChange={(e) => setEditMinStok(e.target.value)}
+                className="h-9 text-xs font-mono tabular-nums"
+              />
+            </div>
+            <DialogFooter className="pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEditItem(null)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={isUpdatingPart}>
+                {isUpdatingPart ? "Menyimpan..." : "Simpan Perubahan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </StaffLayout>
   );
 }

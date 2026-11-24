@@ -1,10 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { BarChart3, DollarSign, Clock, Layers, Filter } from "lucide-react";
+import { BarChart3, DollarSign, Clock } from "lucide-react";
+import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
-import { Button } from "@/components/ui/Button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDate } from "@/utils/formatDate";
 import { getFilteredReportAction } from "@/server/api/laporan/laporanApi";
@@ -43,7 +63,6 @@ interface LaporanWrapperProps {
 
 export function LaporanWrapper({ initialData }: LaporanWrapperProps) {
   const [data, setData] = React.useState<ReportData>(initialData);
-  const [activeTab, setActiveTab] = React.useState<"penjualan" | "pengerjaan">("penjualan");
 
   const todayStr = new Date().toISOString().split("T")[0];
   const lastMonth = new Date();
@@ -65,8 +84,9 @@ export function LaporanWrapper({ initialData }: LaporanWrapperProps) {
     setIsLoading(false);
     if (res.success && res.data) {
       setData(res.data);
+      toast.success("Data laporan berhasil diperbarui.");
     } else {
-      alert(res.error || "Gagal memuat laporan.");
+      toast.error(res.error || "Gagal memuat laporan.");
     }
   };
 
@@ -74,55 +94,65 @@ export function LaporanWrapper({ initialData }: LaporanWrapperProps) {
     <StaffLayout activeStaff={{ nama: "Pak Hendro", peran: "Pemilik" }}>
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Laporan & Analitik
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+          Laporan &amp; Analitik
         </h1>
-        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-          Laporan penjualan dan statistik durasi pengerjaan modifikasi per periode.
+        <p className="text-sm text-muted-foreground mt-1">
+          Laporan penjualan dan statistik durasi pengerjaan modifikasi per
+          periode.
         </p>
       </div>
 
-      {/* Filter Bar Sesuai Wireframe Page 10 */}
-      <Card>
+      {/* Filter Bar */}
+      <Card className="py-0 gap-0">
         <CardContent className="p-4 sm:p-5">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-            <div className="sm:col-span-4 space-y-1">
-              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
+            <div className="sm:col-span-4 space-y-1.5">
+              <Label
+                htmlFor="report-from"
+                className="text-xs font-semibold text-muted-foreground"
+              >
                 Dari tanggal
-              </label>
-              <input
+              </Label>
+              <Input
+                id="report-from"
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                className="h-9 text-xs"
               />
             </div>
 
-            <div className="sm:col-span-4 space-y-1">
-              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
+            <div className="sm:col-span-4 space-y-1.5">
+              <Label
+                htmlFor="report-to"
+                className="text-xs font-semibold text-muted-foreground"
+              >
                 Sampai tanggal
-              </label>
-              <input
+              </Label>
+              <Input
+                id="report-to"
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
+                className="h-9 text-xs"
               />
             </div>
 
-            <div className="sm:col-span-3 space-y-1">
-              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
+            <div className="sm:col-span-3 space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">
                 Kelompok
-              </label>
-              <select
-                value={grouping}
-                onChange={(e) => setGrouping(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
-              >
-                <option value="harian">Harian</option>
-                <option value="mingguan">Mingguan</option>
-                <option value="bulanan">Bulanan</option>
-              </select>
+              </Label>
+              <Select value={grouping} onValueChange={setGrouping}>
+                <SelectTrigger className="w-full h-9 text-xs">
+                  <SelectValue placeholder="Pilih kelompok" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="harian">Harian</SelectItem>
+                  <SelectItem value="mingguan">Mingguan</SelectItem>
+                  <SelectItem value="bulanan">Bulanan</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="sm:col-span-1">
@@ -139,113 +169,107 @@ export function LaporanWrapper({ initialData }: LaporanWrapperProps) {
         </CardContent>
       </Card>
 
-      {/* Tab Navigation: Penjualan & Pengerjaan Sesuai Wireframe Page 10 */}
-      <div className="border-b border-slate-200 dark:border-zinc-800 flex gap-6 text-sm font-semibold">
-        <button
-          type="button"
-          onClick={() => setActiveTab("penjualan")}
-          className={`pb-3 relative transition-colors ${
-            activeTab === "penjualan"
-              ? "text-orange-600 dark:text-orange-400 border-b-2 border-orange-500"
-              : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          Penjualan
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("pengerjaan")}
-          className={`pb-3 relative transition-colors ${
-            activeTab === "pengerjaan"
-              ? "text-orange-600 dark:text-orange-400 border-b-2 border-orange-500"
-              : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          Pengerjaan
-        </button>
-      </div>
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="penjualan" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="penjualan" className="text-xs sm:text-sm">
+            Penjualan
+          </TabsTrigger>
+          <TabsTrigger value="pengerjaan" className="text-xs sm:text-sm">
+            Pengerjaan
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Tab Content */}
-      {activeTab === "penjualan" ? (
-        <div className="space-y-6">
+        <TabsContent value="penjualan" className="space-y-6">
           {/* 3 KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card>
+            <Card className="py-0 gap-0">
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+                  <p className="text-xs font-medium text-muted-foreground">
                     Total penjualan (Omzet)
                   </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+                  <p className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground mt-1">
                     {formatCurrency(data.totalPenjualan)}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                  <DollarSign className="w-6 h-6" />
+                <div className="size-11 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <DollarSign className="size-5" aria-hidden="true" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="py-0 gap-0">
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+                  <p className="text-xs font-medium text-muted-foreground">
                     Jumlah pesanan
                   </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+                  <p className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground mt-1">
                     {data.jumlahPesanan} unit
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold">
-                  <BarChart3 className="w-6 h-6" />
+                <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <BarChart3 className="size-5" aria-hidden="true" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="py-0 gap-0">
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+                  <p className="text-xs font-medium text-muted-foreground">
                     Rata-rata lama pengerjaan
                   </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+                  <p className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground mt-1">
                     {data.rataRataLamaPengerjaan} hari
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold">
-                  <Clock className="w-6 h-6" />
+                <div className="size-11 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                  <Clock className="size-5" aria-hidden="true" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Grafik Batang Penjualan */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-base">Grafik Penjualan Pesanan</CardTitle>
+          <Card className="py-0 gap-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border">
+              <CardTitle className="text-base font-semibold">
+                Grafik Penjualan Pesanan
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               {data.orders.length === 0 ? (
-                <div className="h-32 flex items-center justify-center text-xs text-slate-400">
+                <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">
                   Tidak ada data transaksi pada rentang tanggal yang dipilih.
                 </div>
               ) : (
                 <div className="h-44 flex items-end justify-start gap-6 pt-6 overflow-x-auto">
                   {data.orders.map((ord, i) => {
-                    const maxH = Math.max(...data.orders.map((o) => o.estimasi_total), 1);
-                    const heightPct = Math.max(15, Math.round((ord.estimasi_total / maxH) * 100));
+                    const maxH = Math.max(
+                      ...data.orders.map((o) => o.estimasi_total),
+                      1
+                    );
+                    const heightPct = Math.max(
+                      15,
+                      Math.round((ord.estimasi_total / maxH) * 100)
+                    );
                     return (
-                      <div key={i} className="min-w-[90px] flex-1 flex flex-col items-center gap-2">
-                        <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
+                      <div
+                        key={i}
+                        className="min-w-[90px] flex-1 flex flex-col items-center gap-2"
+                      >
+                        <span className="text-[11px] font-bold tabular-nums text-foreground">
                           {formatCurrency(ord.estimasi_total)}
                         </span>
-                        <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-t-lg h-32 flex items-end">
+                        <div className="w-full bg-muted rounded-t-md h-32 flex items-end">
                           <div
-                            className="w-full bg-orange-500 hover:bg-orange-600 rounded-t-lg transition-all"
+                            className="w-full bg-primary hover:opacity-90 rounded-t-md transition-opacity"
                             style={{ height: `${heightPct}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500 dark:text-zinc-400 text-center truncate max-w-full">
+                        <span className="text-[10px] font-mono text-muted-foreground text-center truncate max-w-full">
                           {ord.kode_pesanan}
                         </span>
                       </div>
@@ -256,106 +280,125 @@ export function LaporanWrapper({ initialData }: LaporanWrapperProps) {
             </CardContent>
           </Card>
 
-          {/* Tabel Rincian Penjualan Sesuai Wireframe Page 10 */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-              <CardTitle className="text-base">Rincian Penjualan Per Pesanan</CardTitle>
+          {/* Tabel Rincian Penjualan */}
+          <Card className="py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 border-b border-border">
+              <CardTitle className="text-base font-semibold">
+                Rincian Penjualan Per Pesanan
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                    <tr>
-                      <th className="py-2.5 px-4 font-mono">Kode Pesanan</th>
-                      <th className="py-2.5 px-4">Tanggal</th>
-                      <th className="py-2.5 px-4 text-right">Subtotal Jasa</th>
-                      <th className="py-2.5 px-4 text-right">Subtotal Suku Cadang</th>
-                      <th className="py-2.5 px-4 text-right font-bold">Total Omzet</th>
-                      <th className="py-2.5 px-4 text-right font-bold text-emerald-600">Terbayar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
-                    {data.orders.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-400">
-                          Tidak ada transaksi yang tercatat pada periode ini.
-                        </td>
-                      </tr>
-                    ) : (
-                      data.orders.map((row) => (
-                        <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                          <td className="py-3 px-4 font-mono font-semibold text-orange-600 dark:text-orange-400">
-                            {row.kode_pesanan}
-                          </td>
-                          <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
-                            {formatDate(row.tanggal)}
-                          </td>
-                          <td className="py-3 px-4 text-right text-slate-600 dark:text-zinc-300">
-                            {formatCurrency(row.subtotalJasa)}
-                          </td>
-                          <td className="py-3 px-4 text-right text-slate-600 dark:text-zinc-300">
-                            {formatCurrency(row.subtotalSukuCadang)}
-                          </td>
-                          <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">
-                            {formatCurrency(row.estimasi_total)}
-                          </td>
-                          <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                            {formatCurrency(row.terbayar)}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <Table className="text-xs">
+                <TableHeader className="bg-muted/60">
+                  <TableRow>
+                    <TableHead className="px-4 font-mono">
+                      Kode Pesanan
+                    </TableHead>
+                    <TableHead className="px-4">Tanggal</TableHead>
+                    <TableHead className="px-4 text-right">
+                      Subtotal Jasa
+                    </TableHead>
+                    <TableHead className="px-4 text-right">
+                      Subtotal Suku Cadang
+                    </TableHead>
+                    <TableHead className="px-4 text-right font-bold">
+                      Total Omzet
+                    </TableHead>
+                    <TableHead className="px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                      Terbayar
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.orders.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="py-8 text-center text-muted-foreground"
+                      >
+                        Tidak ada transaksi yang tercatat pada periode ini.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    data.orders.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="px-4 py-3 font-mono font-semibold text-primary">
+                          {row.kode_pesanan}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {formatDate(row.tanggal)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                          {formatCurrency(row.subtotalJasa)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                          {formatCurrency(row.subtotalSukuCadang)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right font-bold tabular-nums text-foreground">
+                          {formatCurrency(row.estimasi_total)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(row.terbayar)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
-        </div>
-      ) : (
-        /* Tab Pengerjaan */
-        <Card>
-          <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800">
-            <CardTitle className="text-base">Durasi Rata-rata per Tahap Modifikasi</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                  <tr>
-                    <th className="py-2.5 px-4">Nama Tahapan Pengerjaan</th>
-                    <th className="py-2.5 px-4 text-center">Rata-rata Waktu</th>
-                    <th className="py-2.5 px-4 text-center">Unit Selesai</th>
-                    <th className="py-2.5 px-4">Efisiensi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+        </TabsContent>
+
+        <TabsContent value="pengerjaan">
+          <Card className="py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 border-b border-border">
+              <CardTitle className="text-base font-semibold">
+                Durasi Rata-rata per Tahap Modifikasi
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table className="text-xs">
+                <TableHeader className="bg-muted/60">
+                  <TableRow>
+                    <TableHead className="px-4">
+                      Nama Tahapan Pengerjaan
+                    </TableHead>
+                    <TableHead className="px-4 text-center">
+                      Rata-rata Waktu
+                    </TableHead>
+                    <TableHead className="px-4 text-center">
+                      Unit Selesai
+                    </TableHead>
+                    <TableHead className="px-4">Efisiensi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.workStagesBreakdown.map((w, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                      <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                    <TableRow key={idx}>
+                      <TableCell className="px-4 py-3 font-semibold text-foreground">
                         {idx + 1}. {w.tahap}
-                      </td>
-                      <td className="py-3 px-4 text-center font-bold text-orange-600 dark:text-orange-400">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center font-bold tabular-nums text-primary">
                         {w.rataRataHari} hari
-                      </td>
-                      <td className="py-3 px-4 text-center text-slate-600 dark:text-zinc-300">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center tabular-nums text-muted-foreground">
                         {w.pesananSelesai} pesanan
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="w-36 h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 rounded-full"
-                            style={{ width: `${Math.max(20, 100 - w.rataRataHari * 15)}%` }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <Progress
+                          value={Math.max(20, 100 - w.rataRataHari * 15)}
+                          className="w-36 h-2"
+                          aria-label={`Efisiensi ${w.tahap}`}
+                        />
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </StaffLayout>
   );
 }

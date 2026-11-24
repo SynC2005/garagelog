@@ -1,11 +1,40 @@
 "use client";
 
 import * as React from "react";
-import { Plus, ArrowUp, ArrowDown, X, CheckCircle2 } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, CheckCircle2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   createStaffAccountAction,
   updateStaffAccountAction,
@@ -41,10 +70,14 @@ export function PengaturanWrapper({
   initialStaffList,
   initialStagesList,
 }: PengaturanWrapperProps) {
-  const [activeTab, setActiveTab] = React.useState<"staf" | "tahapan">("staf");
-  const [staffList, setStaffList] = React.useState<StaffItem[]>(initialStaffList);
-  const [stagesList, setStagesList] = React.useState<StageItem[]>(initialStagesList);
-  const [feedback, setFeedback] = React.useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [staffList, setStaffList] =
+    React.useState<StaffItem[]>(initialStaffList);
+  const [stagesList, setStagesList] =
+    React.useState<StageItem[]>(initialStagesList);
+  const [feedback, setFeedback] = React.useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   React.useEffect(() => {
     setStaffList(initialStaffList);
@@ -56,6 +89,11 @@ export function PengaturanWrapper({
 
   const showNotification = (type: "success" | "error", message: string) => {
     setFeedback({ type, message });
+    if (type === "success") {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
     setTimeout(() => setFeedback(null), 4000);
   };
 
@@ -67,11 +105,15 @@ export function PengaturanWrapper({
   const [staffRole, setStaffRole] = React.useState<PeranUser>(PeranUser.Montir);
   const [isSubmittingStaff, setIsSubmittingStaff] = React.useState(false);
 
-  const [editStaffItem, setEditStaffItem] = React.useState<StaffItem | null>(null);
+  const [editStaffItem, setEditStaffItem] = React.useState<StaffItem | null>(
+    null
+  );
   const [editStaffNama, setEditStaffNama] = React.useState("");
   const [editStaffEmail, setEditStaffEmail] = React.useState("");
   const [editStaffPassword, setEditStaffPassword] = React.useState("");
-  const [editStaffRole, setEditStaffRole] = React.useState<PeranUser>(PeranUser.Montir);
+  const [editStaffRole, setEditStaffRole] = React.useState<PeranUser>(
+    PeranUser.Montir
+  );
   const [isUpdatingStaff, setIsUpdatingStaff] = React.useState(false);
 
   // Stage Modals
@@ -80,13 +122,18 @@ export function PengaturanWrapper({
   const [stageWajibFoto, setStageWajibFoto] = React.useState(true);
   const [isSubmittingStage, setIsSubmittingStage] = React.useState(false);
 
-  const [editStageItem, setEditStageItem] = React.useState<StageItem | null>(null);
+  const [editStageItem, setEditStageItem] = React.useState<StageItem | null>(
+    null
+  );
   const [editStageNama, setEditStageNama] = React.useState("");
   const [editStageWajibFoto, setEditStageWajibFoto] = React.useState(true);
   const [isUpdatingStage, setIsUpdatingStage] = React.useState(false);
 
   // Staff Actions
-  const handleToggleStaffActive = async (id: number, currentActive: boolean) => {
+  const handleToggleStaffActive = async (
+    id: number,
+    currentActive: boolean
+  ) => {
     const nextVal = !currentActive;
     setStaffList((prev) =>
       prev.map((s) => (s.id === id ? { ...s, aktif: nextVal } : s))
@@ -97,16 +144,22 @@ export function PengaturanWrapper({
       setStaffList((prev) =>
         prev.map((s) => (s.id === id ? { ...s, aktif: currentActive } : s))
       );
-      showNotification("error", res.error || "Gagal mengubah status aktif staf.");
+      showNotification(
+        "error",
+        res.error || "Gagal mengubah status aktif staf."
+      );
     } else {
-      showNotification("success", `Status akun staf diperbarui menjadi ${nextVal ? "Aktif" : "Nonaktif"}.`);
+      showNotification(
+        "success",
+        `Status akun staf diperbarui menjadi ${nextVal ? "Aktif" : "Nonaktif"}.`
+      );
     }
   };
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffNama.trim() || !staffEmail.trim() || !staffPassword.trim()) {
-      alert("Nama, email, dan kata sandi staf wajib diisi!");
+      toast.error("Nama, email, dan kata sandi staf wajib diisi!");
       return;
     }
 
@@ -126,9 +179,12 @@ export function PengaturanWrapper({
       setStaffEmail("");
       setStaffPassword("");
       setStaffRole(PeranUser.Montir);
-      showNotification("success", `Akun staf "${res.data.nama}" berhasil dibuat.`);
+      showNotification(
+        "success",
+        `Akun staf "${res.data.nama}" berhasil dibuat.`
+      );
     } else {
-      alert(res.error || "Gagal membuat akun staf.");
+      toast.error(res.error || "Gagal membuat akun staf.");
     }
   };
 
@@ -149,18 +205,25 @@ export function PengaturanWrapper({
       nama: editStaffNama.trim(),
       email: editStaffEmail.trim(),
       peran: editStaffRole,
-      kataSandi: editStaffPassword.trim() ? editStaffPassword.trim() : undefined,
+      kataSandi: editStaffPassword.trim()
+        ? editStaffPassword.trim()
+        : undefined,
     });
     setIsUpdatingStaff(false);
 
     if (res.success && res.data) {
       setStaffList((prev) =>
-        prev.map((s) => (s.id === editStaffItem.id ? { ...s, ...res.data } : s))
+        prev.map((s) =>
+          s.id === editStaffItem.id ? { ...s, ...res.data } : s
+        )
       );
       setEditStaffItem(null);
-      showNotification("success", `Akun staf "${res.data.nama}" berhasil diperbarui.`);
+      showNotification(
+        "success",
+        `Akun staf "${res.data.nama}" berhasil diperbarui.`
+      );
     } else {
-      alert(res.error || "Gagal memperbarui akun staf.");
+      toast.error(res.error || "Gagal memperbarui akun staf.");
     }
   };
 
@@ -174,18 +237,23 @@ export function PengaturanWrapper({
     const res = await toggleStagePhotoRequirementAction(id, nextVal);
     if (!res.success) {
       setStagesList((prev) =>
-        prev.map((stg) => (stg.id === id ? { ...stg, wajib_foto: currentWajib } : stg))
+        prev.map((stg) =>
+          stg.id === id ? { ...stg, wajib_foto: currentWajib } : stg
+        )
       );
       showNotification("error", res.error || "Gagal mengubah aturan wajib foto.");
     } else {
-      showNotification("success", `Aturan foto untuk tahapan tersebut diubah.`);
+      showNotification(
+        "success",
+        "Aturan foto untuk tahapan tersebut diubah."
+      );
     }
   };
 
   const handleCreateStage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stageNama.trim()) {
-      alert("Nama tahapan wajib diisi!");
+      toast.error("Nama tahapan wajib diisi!");
       return;
     }
 
@@ -201,9 +269,12 @@ export function PengaturanWrapper({
       setShowAddStageModal(false);
       setStageNama("");
       setStageWajibFoto(true);
-      showNotification("success", `Tahapan "${res.data.nama}" berhasil ditambahkan.`);
+      showNotification(
+        "success",
+        `Tahapan "${res.data.nama}" berhasil ditambahkan.`
+      );
     } else {
-      alert(res.error || "Gagal menambahkan tahapan baru.");
+      toast.error(res.error || "Gagal menambahkan tahapan baru.");
     }
   };
 
@@ -226,16 +297,24 @@ export function PengaturanWrapper({
 
     if (res.success && res.data) {
       setStagesList((prev) =>
-        prev.map((stg) => (stg.id === editStageItem.id ? { ...stg, ...res.data } : stg))
+        prev.map((stg) =>
+          stg.id === editStageItem.id ? { ...stg, ...res.data } : stg
+        )
       );
       setEditStageItem(null);
-      showNotification("success", `Tahapan "${res.data.nama}" berhasil diperbarui.`);
+      showNotification(
+        "success",
+        `Tahapan "${res.data.nama}" berhasil diperbarui.`
+      );
     } else {
-      alert(res.error || "Gagal memperbarui tahapan.");
+      toast.error(res.error || "Gagal memperbarui tahapan.");
     }
   };
 
-  const handleMoveStage = async (stageId: number, direction: "up" | "down") => {
+  const handleMoveStage = async (
+    stageId: number,
+    direction: "up" | "down"
+  ) => {
     const res = await reorderStageTemplateAction(stageId, direction);
     if (res.success) {
       const idx = stagesList.findIndex((s) => s.id === stageId);
@@ -257,94 +336,83 @@ export function PengaturanWrapper({
     <StaffLayout>
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           Pengaturan
         </h1>
-        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-          Manajemen hak akses akun staf bengkel dan konfigurasi template tahapan pengerjaan modifikasi.
+        <p className="text-sm text-muted-foreground mt-1">
+          Manajemen hak akses akun staf bengkel dan konfigurasi template tahapan
+          pengerjaan modifikasi.
         </p>
       </div>
 
       {feedback && (
-        <div
-          className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-medium ${
+        <Alert
+          variant={feedback.type === "error" ? "destructive" : "default"}
+          className={
             feedback.type === "success"
-              ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 text-emerald-800 dark:text-emerald-300"
-              : "bg-rose-50 dark:bg-rose-950/60 border-rose-200 text-rose-800 dark:text-rose-300"
-          }`}
+              ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+              : undefined
+          }
         >
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{feedback.message}</span>
-        </div>
+          {feedback.type === "success" ? (
+            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+          ) : (
+            <AlertCircle className="size-4" />
+          )}
+          <AlertDescription className="text-xs font-medium text-current">
+            {feedback.message}
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* Tab Navigation Sesuai Wireframe Page 11 */}
-      <div className="border-b border-slate-200 dark:border-zinc-800 flex gap-6 text-sm font-semibold">
-        <button
-          type="button"
-          onClick={() => setActiveTab("staf")}
-          className={`pb-3 relative transition-colors ${
-            activeTab === "staf"
-              ? "text-orange-600 dark:text-orange-400 border-b-2 border-orange-500"
-              : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          Akun Staf
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("tahapan")}
-          className={`pb-3 relative transition-colors ${
-            activeTab === "tahapan"
-              ? "text-orange-600 dark:text-orange-400 border-b-2 border-orange-500"
-              : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          Template Tahapan
-        </button>
-      </div>
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="staf" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="staf" className="text-xs sm:text-sm">
+            Akun Staf
+          </TabsTrigger>
+          <TabsTrigger value="tahapan" className="text-xs sm:text-sm">
+            Template Tahapan
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Content Tab 1: Akun Staf Sesuai Wireframe Page 11 */}
-      {activeTab === "staf" ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
-            <div>
-              <CardTitle className="text-base">Akun Staf Bengkel</CardTitle>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                Kelola hak akses untuk Admin/Kasir, Montir, dan Pemilik Usaha.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              className="text-xs"
-              onClick={() => setShowAddStaffModal(true)}
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              <span>+ Akun Staf</span>
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                  <tr>
-                    <th className="py-3 px-4">Nama</th>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Peran</th>
-                    <th className="py-3 px-4 text-center">Aktif</th>
-                    <th className="py-3 px-4 text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+        <TabsContent value="staf">
+          <Card className="py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border">
+              <div>
+                <CardTitle className="text-base font-semibold">
+                  Akun Staf Bengkel
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Kelola hak akses untuk Admin/Kasir, Montir, dan Pemilik Usaha.
+                </p>
+              </div>
+              <Button size="xs" onClick={() => setShowAddStaffModal(true)}>
+                <Plus className="size-3.5" aria-hidden="true" />
+                <span>Tambah Staf</span>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table className="text-xs">
+                <TableHeader className="bg-muted/60">
+                  <TableRow>
+                    <TableHead className="px-4">Nama</TableHead>
+                    <TableHead className="px-4">Email</TableHead>
+                    <TableHead className="px-4">Peran</TableHead>
+                    <TableHead className="px-4 text-center">Aktif</TableHead>
+                    <TableHead className="px-4 text-center">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {staffList.map((staf) => (
-                    <tr key={staf.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                      <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                    <TableRow key={staf.id}>
+                      <TableCell className="px-4 py-3 font-semibold text-foreground">
                         {staf.nama}
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-zinc-300 font-mono">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-muted-foreground font-mono">
                         {staf.email}
-                      </td>
-                      <td className="py-3 px-4">
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
                         <Badge
                           variant={
                             staf.peran === PeranUser.Admin
@@ -357,392 +425,431 @@ export function PengaturanWrapper({
                         >
                           {staf.peran}
                         </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={staf.aktif}
-                          onChange={() => handleToggleStaffActive(staf.id, staf.aktif)}
-                          className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
-                        />
-                      </td>
-                      <td className="py-3 px-4 text-center">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center">
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={staf.aktif}
+                            aria-label={`Aktifkan akun ${staf.nama}`}
+                            onCheckedChange={() =>
+                              handleToggleStaffActive(staf.id, staf.aktif)
+                            }
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center">
                         <Button
                           variant="outline"
-                          size="sm"
-                          className="h-6 px-2.5 text-[11px]"
+                          size="xs"
                           onClick={() => handleOpenEditStaff(staf)}
                         >
                           Ubah
                         </Button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        /* Content Tab 2: Template Tahapan Sesuai Wireframe Page 11 */
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
-            <div>
-              <CardTitle className="text-base">Template Tahapan Pengerjaan</CardTitle>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                Urutan tahapan baku yang akan diterapkan saat membuat pesanan modifikasi baru.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              className="text-xs"
-              onClick={() => setShowAddStageModal(true)}
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              <span>+ Tahap</span>
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-zinc-400 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                  <tr>
-                    <th className="py-3 px-4 text-center w-16">Urutan</th>
-                    <th className="py-3 px-4">Nama Tahap</th>
-                    <th className="py-3 px-4 text-center">Wajib Foto</th>
-                    <th className="py-3 px-4 text-center">Aksi & Urutan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tahapan">
+          <Card className="py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border">
+              <div>
+                <CardTitle className="text-base font-semibold">
+                  Template Tahapan Pengerjaan
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Urutan tahapan baku yang akan diterapkan saat membuat pesanan
+                  modifikasi baru.
+                </p>
+              </div>
+              <Button size="xs" onClick={() => setShowAddStageModal(true)}>
+                <Plus className="size-3.5" aria-hidden="true" />
+                <span>Tambah Tahap</span>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table className="text-xs">
+                <TableHeader className="bg-muted/60">
+                  <TableRow>
+                    <TableHead className="px-4 text-center w-16">
+                      Urutan
+                    </TableHead>
+                    <TableHead className="px-4">Nama Tahap</TableHead>
+                    <TableHead className="px-4 text-center">
+                      Wajib Foto
+                    </TableHead>
+                    <TableHead className="px-4 text-center">
+                      Aksi &amp; Urutan
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {stagesList.map((stg, idx) => (
-                    <tr key={stg.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                      <td className="py-3 px-4 text-center font-bold text-slate-500">
+                    <TableRow key={stg.id}>
+                      <TableCell className="px-4 py-3 text-center font-bold tabular-nums text-muted-foreground">
                         {stg.urutan}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 font-semibold text-foreground">
                         {stg.nama}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center">
+                        <label className="inline-flex items-center gap-2 cursor-pointer">
+                          <Checkbox
                             checked={stg.wajib_foto}
-                            onChange={() => handleToggleStagePhoto(stg.id, stg.wajib_foto)}
-                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
+                            aria-label={`Wajib foto untuk tahap ${stg.nama}`}
+                            onCheckedChange={() =>
+                              handleToggleStagePhoto(stg.id, stg.wajib_foto)
+                            }
                           />
-                          <span className="text-[11px] text-slate-500">
+                          <span className="text-[11px] text-muted-foreground">
                             {stg.wajib_foto ? "Wajib" : "Opsional"}
                           </span>
                         </label>
-                      </td>
-                      <td className="py-3 px-4 text-center">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center">
                         <div className="inline-flex items-center gap-1.5">
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="h-6 px-2 text-[11px]"
+                            size="xs"
                             onClick={() => handleOpenEditStage(stg)}
                           >
                             Ubah
                           </Button>
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="icon-xs"
                             disabled={idx === 0}
                             onClick={() => handleMoveStage(stg.id, "up")}
-                            className="h-6 px-1.5 text-[11px]"
+                            aria-label={`Naikkan urutan ${stg.nama}`}
                             title="Naikkan urutan"
                           >
-                            <ArrowUp className="w-3 h-3" />
+                            <ArrowUp className="size-3" aria-hidden="true" />
                           </Button>
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="icon-xs"
                             disabled={idx === stagesList.length - 1}
                             onClick={() => handleMoveStage(stg.id, "down")}
-                            className="h-6 px-1.5 text-[11px]"
+                            aria-label={`Turunkan urutan ${stg.nama}`}
                             title="Turunkan urutan"
                           >
-                            <ArrowDown className="w-3 h-3" />
+                            <ArrowDown className="size-3" aria-hidden="true" />
                           </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-      {/* Modal Tambah Staf Baru */}
-      {showAddStaffModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800 mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Tambah Akun Staf Baru
-              </h3>
-              <button
+      {/* Modal Tambah Staf Baru (shadcn Dialog) */}
+      <Dialog open={showAddStaffModal} onOpenChange={setShowAddStaffModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tambah Akun Staf Baru</DialogTitle>
+            <DialogDescription className="text-xs">
+              Buat akun login untuk admin/kasir, montir bengkel, atau pemilik
+              usaha.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateStaff} className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-staff-name" className="text-xs font-semibold">
+                Nama Lengkap
+              </Label>
+              <Input
+                id="add-staff-name"
+                type="text"
+                required
+                value={staffNama}
+                onChange={(e) => setStaffNama(e.target.value)}
+                placeholder="Contoh: Andi Pratama"
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="add-staff-email"
+                className="text-xs font-semibold"
+              >
+                Email
+              </Label>
+              <Input
+                id="add-staff-email"
+                type="email"
+                required
+                value={staffEmail}
+                onChange={(e) => setStaffEmail(e.target.value)}
+                placeholder="andi.montir@garagelog.com"
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-staff-pass" className="text-xs font-semibold">
+                Kata Sandi
+              </Label>
+              <Input
+                id="add-staff-pass"
+                type="password"
+                required
+                value={staffPassword}
+                onChange={(e) => setStaffPassword(e.target.value)}
+                placeholder="Minimal 6 karakter"
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Peran Hak Akses</Label>
+              <Select
+                value={staffRole}
+                onValueChange={(val) => setStaffRole(val as PeranUser)}
+              >
+                <SelectTrigger className="w-full h-9 text-xs">
+                  <SelectValue placeholder="Pilih peran" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PeranUser.Admin}>Admin / Kasir</SelectItem>
+                  <SelectItem value={PeranUser.Montir}>Montir</SelectItem>
+                  <SelectItem value={PeranUser.Pemilik}>Pemilik Usaha</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowAddStaffModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateStaff} className="space-y-3 text-xs">
-              <div>
-                <label className="font-semibold block mb-1">Nama Lengkap</label>
-                <input
-                  type="text"
-                  required
-                  value={staffNama}
-                  onChange={(e) => setStaffNama(e.target.value)}
-                  placeholder="Contoh: Andi Pratama"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="font-semibold block mb-1">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={staffEmail}
-                  onChange={(e) => setStaffEmail(e.target.value)}
-                  placeholder="andi.montir@garagelog.com"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="font-semibold block mb-1">Kata Sandi</label>
-                <input
-                  type="password"
-                  required
-                  value={staffPassword}
-                  onChange={(e) => setStaffPassword(e.target.value)}
-                  placeholder="Minimal 6 karakter"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="font-semibold block mb-1">Peran Hak Akses</label>
-                <select
-                  value={staffRole}
-                  onChange={(e) => setStaffRole(e.target.value as PeranUser)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                >
-                  <option value={PeranUser.Admin}>Admin / Kasir</option>
-                  <option value={PeranUser.Montir}>Montir</option>
-                  <option value={PeranUser.Pemilik}>Pemilik Usaha</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddStaffModal(false)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" size="sm" disabled={isSubmittingStaff}>
-                  {isSubmittingStaff ? "Menyimpan..." : "Simpan Akun"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={isSubmittingStaff}>
+                {isSubmittingStaff ? "Menyimpan..." : "Simpan Akun"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal Ubah Staf */}
-      {editStaffItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800 mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Ubah Akun Staf
-              </h3>
-              <button
+      {/* Modal Ubah Staf (shadcn Dialog) */}
+      <Dialog
+        open={Boolean(editStaffItem)}
+        onOpenChange={(open) => {
+          if (!open) setEditStaffItem(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ubah Akun Staf</DialogTitle>
+            <DialogDescription className="text-xs">
+              Perbarui profil, peran akses, atau reset kata sandi akun staf.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateStaff} className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="edit-staff-name"
+                className="text-xs font-semibold"
+              >
+                Nama Lengkap
+              </Label>
+              <Input
+                id="edit-staff-name"
+                type="text"
+                required
+                value={editStaffNama}
+                onChange={(e) => setEditStaffNama(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="edit-staff-email"
+                className="text-xs font-semibold"
+              >
+                Email
+              </Label>
+              <Input
+                id="edit-staff-email"
+                type="email"
+                required
+                value={editStaffEmail}
+                onChange={(e) => setEditStaffEmail(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="edit-staff-pass"
+                className="text-xs font-semibold"
+              >
+                Kata Sandi Baru (Kosongkan bila tidak diubah)
+              </Label>
+              <Input
+                id="edit-staff-pass"
+                type="password"
+                value={editStaffPassword}
+                onChange={(e) => setEditStaffPassword(e.target.value)}
+                placeholder="Isi untuk reset kata sandi"
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Peran Hak Akses</Label>
+              <Select
+                value={editStaffRole}
+                onValueChange={(val) => setEditStaffRole(val as PeranUser)}
+              >
+                <SelectTrigger className="w-full h-9 text-xs">
+                  <SelectValue placeholder="Pilih peran" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PeranUser.Admin}>Admin / Kasir</SelectItem>
+                  <SelectItem value={PeranUser.Montir}>Montir</SelectItem>
+                  <SelectItem value={PeranUser.Pemilik}>Pemilik Usaha</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setEditStaffItem(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleUpdateStaff} className="space-y-3 text-xs">
-              <div>
-                <label className="font-semibold block mb-1">Nama Lengkap</label>
-                <input
-                  type="text"
-                  required
-                  value={editStaffNama}
-                  onChange={(e) => setEditStaffNama(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="font-semibold block mb-1">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={editStaffEmail}
-                  onChange={(e) => setEditStaffEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="font-semibold block mb-1">
-                  Kata Sandi Baru (Kosongkan bila tidak diubah)
-                </label>
-                <input
-                  type="password"
-                  value={editStaffPassword}
-                  onChange={(e) => setEditStaffPassword(e.target.value)}
-                  placeholder="Isi untuk reset kata sandi"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="font-semibold block mb-1">Peran Hak Akses</label>
-                <select
-                  value={editStaffRole}
-                  onChange={(e) => setEditStaffRole(e.target.value as PeranUser)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                >
-                  <option value={PeranUser.Admin}>Admin / Kasir</option>
-                  <option value={PeranUser.Montir}>Montir</option>
-                  <option value={PeranUser.Pemilik}>Pemilik Usaha</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setEditStaffItem(null)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" size="sm" disabled={isUpdatingStaff}>
-                  {isUpdatingStaff ? "Menyimpan..." : "Simpan Perubahan"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={isUpdatingStaff}>
+                {isUpdatingStaff ? "Menyimpan..." : "Simpan Perubahan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal Tambah Tahapan Baru */}
-      {showAddStageModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800 mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Tambah Template Tahapan Baru
-              </h3>
-              <button
+      {/* Modal Tambah Tahapan Baru (shadcn Dialog) */}
+      <Dialog open={showAddStageModal} onOpenChange={setShowAddStageModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tambah Template Tahapan Baru</DialogTitle>
+            <DialogDescription className="text-xs">
+              Tambahkan tahapan standar pengerjaan yang muncul pada formulir
+              pesanan baru.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateStage} className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-stage-name" className="text-xs font-semibold">
+                Nama Tahapan
+              </Label>
+              <Input
+                id="add-stage-name"
+                type="text"
+                required
+                value={stageNama}
+                onChange={(e) => setStageNama(e.target.value)}
+                placeholder="Contoh: Dyno Test & Kalibrasi ECU"
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="pt-2">
+              <label className="flex items-center gap-2 cursor-pointer font-medium">
+                <Checkbox
+                  checked={stageWajibFoto}
+                  onCheckedChange={(checked) =>
+                    setStageWajibFoto(Boolean(checked))
+                  }
+                />
+                <span>
+                  Wajib Unggah Foto Sebelum Tahap Diselesaikan (FR-18)
+                </span>
+              </label>
+            </div>
+            <DialogFooter className="pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowAddStageModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateStage} className="space-y-3 text-xs">
-              <div>
-                <label className="font-semibold block mb-1">Nama Tahapan</label>
-                <input
-                  type="text"
-                  required
-                  value={stageNama}
-                  onChange={(e) => setStageNama(e.target.value)}
-                  placeholder="Contoh: Dyno Test & Kalibrasi ECU"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
-                />
-              </div>
-              <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer font-medium">
-                  <input
-                    type="checkbox"
-                    checked={stageWajibFoto}
-                    onChange={(e) => setStageWajibFoto(e.target.checked)}
-                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
-                  />
-                  <span>Wajib Unggah Foto Sebelum Tahap Diselesaikan (FR-18)</span>
-                </label>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddStageModal(false)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" size="sm" disabled={isSubmittingStage}>
-                  {isSubmittingStage ? "Menyimpan..." : "Simpan Tahapan"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={isSubmittingStage}>
+                {isSubmittingStage ? "Menyimpan..." : "Simpan Tahapan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal Ubah Tahapan */}
-      {editStageItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800 mb-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Ubah Template Tahapan
-              </h3>
-              <button
-                onClick={() => setEditStageItem(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
+      {/* Modal Ubah Tahapan (shadcn Dialog) */}
+      <Dialog
+        open={Boolean(editStageItem)}
+        onOpenChange={(open) => {
+          if (!open) setEditStageItem(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ubah Template Tahapan</DialogTitle>
+            <DialogDescription className="text-xs">
+              Perbarui nama tahapan atau aturan dokumentasi foto wajib.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateStage} className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="edit-stage-name"
+                className="text-xs font-semibold"
               >
-                <X className="w-5 h-5" />
-              </button>
+                Nama Tahapan
+              </Label>
+              <Input
+                id="edit-stage-name"
+                type="text"
+                required
+                value={editStageNama}
+                onChange={(e) => setEditStageNama(e.target.value)}
+                className="h-9 text-xs"
+              />
             </div>
-            <form onSubmit={handleUpdateStage} className="space-y-3 text-xs">
-              <div>
-                <label className="font-semibold block mb-1">Nama Tahapan</label>
-                <input
-                  type="text"
-                  required
-                  value={editStageNama}
-                  onChange={(e) => setEditStageNama(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg"
+            <div className="pt-2">
+              <label className="flex items-center gap-2 cursor-pointer font-medium">
+                <Checkbox
+                  checked={editStageWajibFoto}
+                  onCheckedChange={(checked) =>
+                    setEditStageWajibFoto(Boolean(checked))
+                  }
                 />
-              </div>
-              <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer font-medium">
-                  <input
-                    type="checkbox"
-                    checked={editStageWajibFoto}
-                    onChange={(e) => setEditStageWajibFoto(e.target.checked)}
-                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
-                  />
-                  <span>Wajib Unggah Foto Sebelum Tahap Diselesaikan (FR-18)</span>
-                </label>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setEditStageItem(null)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" size="sm" disabled={isUpdatingStage}>
-                  {isUpdatingStage ? "Menyimpan..." : "Simpan Perubahan"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                <span>
+                  Wajib Unggah Foto Sebelum Tahap Diselesaikan (FR-18)
+                </span>
+              </label>
+            </div>
+            <DialogFooter className="pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEditStageItem(null)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={isUpdatingStage}>
+                {isUpdatingStage ? "Menyimpan..." : "Simpan Perubahan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </StaffLayout>
   );
 }
