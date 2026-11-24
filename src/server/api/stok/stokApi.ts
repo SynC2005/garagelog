@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { adjustStock, createPart, updatePart } from "@/server/services/stok/stokService";
 import { JenisPergerakanStok } from "@prisma/client";
+import { serializeDecimals } from "@/utils/serialize";
 
 export type ApiResponse<T> = {
   success: boolean;
@@ -22,7 +23,7 @@ export async function createPartAction(formData: {
     revalidatePath("/stok");
     revalidatePath("/pesanan/buat");
     revalidatePath("/dashboard");
-    return { success: true, data: res };
+    return { success: true, data: serializeDecimals(res) };
   } catch (err: any) {
     return { success: false, error: err.message || "Gagal menambahkan suku cadang baru." };
   }
@@ -41,7 +42,7 @@ export async function updatePartAction(
     const res = await updatePart(id, data);
     revalidatePath("/stok");
     revalidatePath("/pesanan/buat");
-    return { success: true, data: res };
+    return { success: true, data: serializeDecimals(res) };
   } catch (err: any) {
     return { success: false, error: err.message || "Gagal memperbarui suku cadang." };
   }
@@ -57,7 +58,7 @@ export async function adjustStockAction(formData: {
     const res = await adjustStock(formData);
     revalidatePath("/stok");
     revalidatePath("/dashboard");
-    return { success: true, data: res };
+    return { success: true, data: serializeDecimals(res) };
   } catch (err: any) {
     return { success: false, error: err.message || "Gagal mencatat pergerakan stok." };
   }

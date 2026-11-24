@@ -63,6 +63,8 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
   const [isSubmittingMovement, setIsSubmittingMovement] = React.useState(false);
   const [feedback, setFeedback] = React.useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const selectedItem = items.find((i) => i.id === selectedItemId);
+
   // Modal Tambah Barang Baru
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [addNama, setAddNama] = React.useState("");
@@ -113,8 +115,18 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
     }
 
     const qty = Number(amount);
-    if (isNaN(qty) || qty <= 0) {
-      setFeedback({ type: "error", message: "Jumlah harus lebih besar dari 0." });
+    if (isNaN(qty)) {
+      setFeedback({ type: "error", message: "Masukkan jumlah angka yang valid." });
+      return;
+    }
+
+    if (movementType === "masuk" && qty <= 0) {
+      setFeedback({ type: "error", message: "Jumlah barang masuk harus lebih besar dari 0." });
+      return;
+    }
+
+    if (movementType === "koreksi" && qty < 0) {
+      setFeedback({ type: "error", message: "Jumlah stok fisik tidak boleh bernilai negatif." });
       return;
     }
 
@@ -132,17 +144,20 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
 
     if (res.success && res.data) {
       const updatedItem = res.data;
+      const target = items.find((i) => i.id === selectedItemId);
+      const delta = movementType === "masuk" ? qty : updatedItem.stok - (target?.stok ?? 0);
+
       setItems((prev) =>
         prev.map((i) => (i.id === updatedItem.id ? { ...i, stok: updatedItem.stok } : i))
       );
-      const target = items.find((i) => i.id === selectedItemId);
+
       setMovements((prev) => [
         {
           id: Date.now(),
           waktu: new Date(),
           sukuCadangId: selectedItemId,
           jenis: movementType === "masuk" ? JenisPergerakanStok.masuk : JenisPergerakanStok.koreksi,
-          jumlah: qty,
+          jumlah: delta,
           alasan: reason.trim(),
           sukuCadang: {
             nama: target?.nama || "",
@@ -154,9 +169,17 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
 
       setFeedback({
         type: "success",
-        message: `Stok barang "${target?.nama}" berhasil disesuaikan menjadi ${updatedItem.stok} unit.`,
+        message:
+          movementType === "koreksi"
+            ? `Stok barang "${target?.nama}" berhasil dikoreksi menjadi ${updatedItem.stok} unit (selisih: ${delta >= 0 ? `+${delta}` : delta}).`
+            : `Berhasil menambah ${qty} unit ke stok "${target?.nama}". Total stok sekarang: ${updatedItem.stok} unit.`,
       });
       setReason("");
+      if (movementType === "koreksi") {
+        setAmount(String(updatedItem.stok));
+      } else {
+        setAmount("1");
+      }
       setTimeout(() => setFeedback(null), 4000);
     } else {
       setFeedback({ type: "error", message: res.error || "Gagal mencatat pergerakan stok." });
@@ -421,7 +444,14 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                   <label className="font-semibold block mb-1">Pilih Barang</label>
                   <select
                     value={selectedItemId}
-                    onChange={(e) => setSelectedItemId(Number(e.target.value))}
+                    onChange={(e) => {
+                      const newId = Number(e.target.value);
+                      setSelectedItemId(newId);
+                      if (movementType === "koreksi") {
+                        const target = items.find((i) => i.id === newId);
+                        if (target) setAmount(String(target.stok));
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs"
                   >
                     {items.map((i) => (
@@ -438,7 +468,10 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                       type="radio"
                       name="mType"
                       checked={movementType === "masuk"}
-                      onChange={() => setMovementType("masuk")}
+                      onChange={() => {
+                        setMovementType("masuk");
+                        setAmount("1");
+                      }}
                       className="text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
                     <span>Barang masuk</span>
@@ -449,7 +482,10 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                       type="radio"
                       name="mType"
                       checked={movementType === "koreksi"}
-                      onChange={() => setMovementType("koreksi")}
+                      onChange={() => {
+                        setMovementType("koreksi");
+                        setAmount(String(selectedItem?.stok ?? 0));
+                      }}
                       className="text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
                     <span>Koreksi stok</span>
@@ -457,15 +493,31 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                 </div>
 
                 <div>
-                  <label className="font-semibold block mb-1">Jumlah</label>
+                  <label className="font-semibold block mb-1">
+                    {movementType === "masuk"
+                      ? "Jumlah Barang Masuk (Unit)"
+                      : "Stok Fisik Sebenarnya (Hasil Opname)"}
+                  </label>
                   <input
                     type="number"
-                    min="1"
+                    min={movementType === "masuk" ? "1" : "0"}
                     required
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                    placeholder={
+                      movementType === "masuk"
+                        ? "Contoh: 5"
+                        : selectedItem
+                        ? `Stok saat ini ${selectedItem.stok}. Masukkan stok fisik riil`
+                        : "Contoh: 3"
+                    }
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-lg text-xs font-mono"
                   />
+                  {movementType === "koreksi" && selectedItem && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                      Stok saat ini di sistem: <strong>{selectedItem.stok} unit</strong>. Nilai yang Anda masukkan akan langsung menjadi jumlah stok akhir.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -544,7 +596,13 @@ export function StokWrapper({ initialItems, initialMovements }: StokWrapperProps
                             </Badge>
                           </td>
                           <td className="py-2.5 px-3 text-center font-mono font-bold">
-                            {m.jenis === "masuk" ? `+${m.jumlah}` : `-${m.jumlah}`}
+                            {m.jenis === "masuk"
+                              ? `+${Math.abs(m.jumlah)}`
+                              : m.jenis === "keluar"
+                              ? `-${Math.abs(m.jumlah)}`
+                              : m.jumlah > 0
+                              ? `+${m.jumlah}`
+                              : `${m.jumlah}`}
                           </td>
                           <td className="py-2.5 px-3 text-slate-600 dark:text-zinc-400 max-w-[180px] truncate">
                             {m.alasan}

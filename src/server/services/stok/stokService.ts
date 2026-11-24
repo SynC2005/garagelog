@@ -109,6 +109,8 @@ export async function updatePart(
 
 /**
  * Catat barang masuk atau koreksi stok manual dengan alasan wajib (FR-14)
+ * - Jika jenis === "masuk": data.jumlah adalah penambahan unit (harus > 0)
+ * - Jika jenis === "koreksi": data.jumlah adalah stok fisik riil hasil opname (harus >= 0)
  */
 export async function adjustStock(data: {
   sukuCadangId: number;
@@ -127,26 +129,36 @@ export async function adjustStock(data: {
 
     if (!item) throw new Error("Suku cadang tidak ditemukan.");
 
-    let newStock = item.stok;
+    let newStock: number;
+    let deltaMovement: number;
+
     if (data.jenis === JenisPergerakanStok.masuk) {
-      newStock += data.jumlah;
-    } else if (data.jenis === JenisPergerakanStok.koreksi) {
-      // Pada koreksi, jika jumlah negatif atau berkurang
-      newStock = Math.max(0, item.stok + data.jumlah);
+      if (data.jumlah <= 0) {
+        throw new Error("Jumlah barang masuk harus lebih besar dari 0.");
+      }
+      newStock = item.stok + data.jumlah;
+      deltaMovement = data.jumlah;
+    } else {
+      // Koreksi stok fisik akhir hasil opname
+      if (data.jumlah < 0) {
+        throw new Error("Stok fisik hasil koreksi tidak boleh bernilai negatif.");
+      }
+      newStock = data.jumlah;
+      deltaMovement = newStock - item.stok; // selisih perubahan stok (bisa positif atau negatif)
     }
 
-    // 1. Update stok
+    // 1. Update stok suku cadang ke angka baru
     const updated = await tx.sukuCadang.update({
       where: { id: data.sukuCadangId },
       data: { stok: newStock },
     });
 
-    // 2. Catat audit trail PergerakanStok
+    // 2. Catat audit trail PergerakanStok dengan selisih mutasi
     await tx.pergerakanStok.create({
       data: {
         sukuCadangId: data.sukuCadangId,
         jenis: data.jenis,
-        jumlah: data.jumlah,
+        jumlah: deltaMovement,
         alasan: data.alasan,
       },
     });
