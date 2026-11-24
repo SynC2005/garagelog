@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum PeranUser {
+  Admin
+  Montir
+  Pemilik
+}
+
+enum StatusPesanan {
+  Menunggu_Persetujuan
+  Dikerjakan
+  Siap_Diambil
+  Selesai
+  Dibatalkan
+}
+
+enum StatusTahap {
+  belum
+  berjalan
+  selesai
+}
+
+enum JenisPembaruan {
+  tahap
+  informasional
+}
+
+enum JenisPergerakanStok {
+  masuk
+  keluar
+  koreksi
+}
+
+enum MetodePembayaran {
+  tunai
+  transfer
+  QRIS
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  nama            String
+  email           String    @unique
+  kata_sandi_hash String
+  peran           PeranUser
+  aktif           Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  pesananDibuat     Pesanan[]          @relation("UserPembuatPesanan")
+  progresDibuat     PembaruanProgres[] @relation("UserPencatatProgres")
+  pembayaranDicatat Pembayaran[]       @relation("UserPencatatPembayaran")
+
+  @@map("users")
+}
+
+model Pelanggan {
+  id         Int         @id @default(autoincrement())
+  nama       String
+  telepon    String
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+  kendaraan  Kendaraan[]
+  pesanan    Pesanan[]
+
+  @@map("pelanggan")
+}
+
+model Kendaraan {
+  id           Int       @id @default(autoincrement())
+  pelangganId  Int
+  pelanggan    Pelanggan @relation(fields: [pelangganId], references: [id], onDelete: Cascade)
+  merek        String
+  model        String
+  tahun        Int
+  nomor_polisi String
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  pesanan      Pesanan[]
+
+  @@map("kendaraan")
+}
+
+model Jasa {
+  id          Int        @id @default(autoincrement())
+  nama        String
+  deskripsi   String?
+  harga_dasar Decimal    @db.Decimal(12, 2)
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+  itemJasa    ItemJasa[]
+
+  @@map("jasa")
+}
+
+model ItemJasa {
+  id        Int      @id @default(autoincrement())
+  pesananId Int
+  pesanan   Pesanan  @relation(fields: [pesananId], references: [id], onDelete: Cascade)
+  jasaId    Int
+  jasa      Jasa     @relation(fields: [jasaId], references: [id])
+  harga     Decimal  @db.Decimal(12, 2)
+  catatan   String?
+  waktu     DateTime @default(now())
+
+  @@map("item_jasa")
+}
+
+model SukuCadang {
+  id           Int                 @id @default(autoincrement())
+  nama         String
+  SKU          String              @unique
+  harga_jual   Decimal             @db.Decimal(12, 2)
+  stok         Int                 @default(0)
+  stok_minimum Int                 @default(0)
+  created_at   DateTime            @default(now())
+  updated_at   DateTime            @updatedAt
+
+  pergerakanStok PergerakanStok[]
+  itemSukuCadang ItemSukuCadang[]
+
+  @@map("suku_cadang")
+}
+
+model PergerakanStok {
+  id           Int                 @id @default(autoincrement())
+  sukuCadangId Int
+  sukuCadang   SukuCadang          @relation(fields: [sukuCadangId], references: [id], onDelete: Cascade)
+  jenis        JenisPergerakanStok
+  jumlah       Int
+  alasan       String
+  waktu        DateTime            @default(now())
+
+  @@map("pergerakan_stok")
+}
+
+model ItemSukuCadang {
+  id           Int        @id @default(autoincrement())
+  pesananId    Int
+  pesanan      Pesanan    @relation(fields: [pesananId], references: [id], onDelete: Cascade)
+  sukuCadangId Int
+  sukuCadang   SukuCadang @relation(fields: [sukuCadangId], references: [id])
+  jumlah       Int
+  harga        Decimal    @db.Decimal(12, 2)
+  waktu        DateTime   @default(now())
+
+  @@map("item_suku_cadang")
+}
+
+model Pesanan {
+  id                Int           @id @default(autoincrement())
+  kode_pesanan      String        @unique
+  pelangganId       Int
+  pelanggan         Pelanggan     @relation(fields: [pelangganId], references: [id])
+  kendaraanId       Int
+  kendaraan         Kendaraan     @relation(fields: [kendaraanId], references: [id])
+  status            StatusPesanan @default(Menunggu_Persetujuan)
+  estimasi_total    Decimal       @default(0) @db.Decimal(12, 2)
+  disetujui_pada    DateTime?
+  perkiraan_selesai DateTime?     @db.Date
+  dibuat_oleh       Int
+  userPembuat       User          @relation("UserPembuatPesanan", fields: [dibuat_oleh], references: [id])
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  itemJasa       ItemJasa[]
+  itemSukuCadang ItemSukuCadang[]
+  tahapan        TahapPesanan[]
+  pembayaran     Pembayaran[]
+
+  @@map("pesanan")
+}
+
+model TemplateTahap {
+  id         Int     @id @default(autoincrement())
+  nama       String
+  urutan     Int
+  wajib_foto Boolean @default(false)
+
+  @@map("template_tahap")
+}
+
+model TahapPesanan {
+  id         Int         @id @default(autoincrement())
+  pesananId  Int
+  pesanan    Pesanan     @relation(fields: [pesananId], references: [id], onDelete: Cascade)
+  nama       String
+  urutan     Int
+  wajib_foto Boolean     @default(false)
+  status     StatusTahap @default(belum)
+
+  pembaruan PembaruanProgres[]
+
+  @@map("tahap_pesanan")
+}
+
+model PembaruanProgres {
+  id             Int            @id @default(autoincrement())
+  tahapPesananId Int
+  tahapPesanan   TahapPesanan   @relation(fields: [tahapPesananId], references: [id], onDelete: Cascade)
+  jenis          JenisPembaruan @default(tahap)
+  catatan        String
+  dibuat_oleh    Int
+  userPembuat    User           @relation("UserPencatatProgres", fields: [dibuat_oleh], references: [id])
+  waktu          DateTime       @default(now())
+
+  foto FotoProgres[]
+
+  @@map("pembaruan_progres")
+}
+
+model FotoProgres {
+  id          Int              @id @default(autoincrement())
+  pembaruanId Int
+  pembaruan   PembaruanProgres @relation(fields: [pembaruanId], references: [id], onDelete: Cascade)
+  url         String
+  created_at  DateTime         @default(now())
+
+  @@map("foto_progres")
+}
+
+model Pembayaran {
+  id           Int              @id @default(autoincrement())
+  pesananId    Int
+  pesanan      Pesanan          @relation(fields: [pesananId], references: [id], onDelete: Cascade)
+  jumlah       Decimal          @db.Decimal(12, 2)
+  metode       MetodePembayaran
+  tanggal      DateTime         @default(now())
+  dicatat_oleh Int
+  userPencatat User             @relation("UserPencatatPembayaran", fields: [dicatat_oleh], references: [id])
+
+  @@map("pembayaran")
+}
+
