@@ -11,6 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,10 +38,14 @@ interface JasaWrapperProps {
 }
 
 export function JasaWrapper({ initialServices }: JasaWrapperProps) {
-  const [services] = React.useState<Jasa[]>(initialServices);
+  const [services, setServices] = React.useState<Jasa[]>(initialServices);
   const [search, setSearch] = React.useState("");
+
+  // Floating Window (Dialog) State
+  const [showDialog, setShowDialog] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [modalError, setModalError] = React.useState<string | null>(null);
   const [feedback, setFeedback] = React.useState<{
     type: "success" | "error";
     text: string;
@@ -52,13 +64,40 @@ export function JasaWrapper({ initialServices }: JasaWrapperProps) {
       (s.deskripsi && s.deskripsi.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const handleOpenCreate = () => {
+    setIsEditing(false);
+    setModalError(null);
+    setForm({ id: 0, nama: "", deskripsi: "", hargaDasar: 500000 });
+    setShowDialog(true);
+  };
+
+  const handleOpenEdit = (service: Jasa) => {
+    setIsEditing(true);
+    setModalError(null);
+    setForm({
+      id: service.id,
+      nama: service.nama,
+      deskripsi: service.deskripsi || "",
+      hargaDasar: Number(service.harga_dasar),
+    });
+    setShowDialog(true);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nama.trim() || form.hargaDasar < 0) return;
+    setModalError(null);
+
+    if (!form.nama.trim()) {
+      setModalError("Nama jasa wajib diisi.");
+      return;
+    }
+    if (form.hargaDasar < 0 || Number.isNaN(Number(form.hargaDasar))) {
+      setModalError("Harga dasar tidak boleh kurang dari 0.");
+      return;
+    }
 
     try {
       setIsSubmitting(true);
-      setFeedback(null);
 
       if (isEditing) {
         const res = await updateServiceAction(form.id, {
@@ -66,43 +105,43 @@ export function JasaWrapper({ initialServices }: JasaWrapperProps) {
           deskripsi: form.deskripsi.trim() || undefined,
           hargaDasar: Number(form.hargaDasar),
         });
-        if (!res.success) {
-          setFeedback({
-            type: "error",
-            text: res.error || "Gagal mengubah jasa.",
-          });
+        if (!res.success || !res.data) {
+          setModalError(res.error || "Gagal mengubah jasa.");
           return;
         }
-        toast.success("Data jasa modifikasi berhasil diperbarui!");
-        setFeedback({
-          type: "success",
-          text: "Data jasa modifikasi berhasil diperbarui!",
-        });
+        setServices((prev) =>
+          prev
+            .map((item) => (item.id === form.id ? res.data : item))
+            .sort((a, b) => a.nama.localeCompare(b.nama))
+        );
+        const msg = `Data jasa "${res.data.nama}" berhasil diperbarui!`;
+        toast.success(msg);
+        setFeedback({ type: "success", text: msg });
       } else {
         const res = await createServiceAction({
           nama: form.nama.trim(),
           deskripsi: form.deskripsi.trim() || undefined,
           hargaDasar: Number(form.hargaDasar),
         });
-        if (!res.success) {
-          setFeedback({
-            type: "error",
-            text: res.error || "Gagal menambah jasa baru.",
-          });
+        if (!res.success || !res.data) {
+          setModalError(res.error || "Gagal menambah jasa baru.");
           return;
         }
-        toast.success("Paket jasa baru berhasil ditambahkan!");
-        setFeedback({
-          type: "success",
-          text: "Paket jasa baru berhasil ditambahkan!",
-        });
+        setServices((prev) =>
+          [...prev, res.data].sort((a, b) => a.nama.localeCompare(b.nama))
+        );
+        const msg = `Paket jasa "${res.data.nama}" berhasil ditambahkan!`;
+        toast.success(msg);
+        setFeedback({ type: "success", text: msg });
       }
 
+      setShowDialog(false);
       setForm({ id: 0, nama: "", deskripsi: "", hargaDasar: 500000 });
       setIsEditing(false);
-      window.location.reload();
-    } catch (err: any) {
-      setFeedback({ type: "error", text: err.message || "Terjadi kesalahan." });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
+      setModalError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -111,236 +150,212 @@ export function JasaWrapper({ initialServices }: JasaWrapperProps) {
   return (
     <StaffLayout>
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Katalog Jasa
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Katalog paket modifikasi dan tarif harga dasar jasa pengerjaan bengkel.
-        </p>
-      </div>
-
-      {/* Grid 2 Kolom */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Kolom Kiri: Tabel Daftar Jasa */}
-        <div className="lg:col-span-7">
-          <Card className="py-0 gap-0">
-            <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between space-y-0 border-b border-border">
-              <CardTitle className="text-base font-semibold">
-                Daftar Jasa ({services.length})
-              </CardTitle>
-              <Button
-                size="xs"
-                onClick={() => {
-                  setIsEditing(false);
-                  setForm({
-                    id: 0,
-                    nama: "",
-                    deskripsi: "",
-                    hargaDasar: 500000,
-                  });
-                }}
-              >
-                <Plus className="size-3.5" aria-hidden="true" />
-                <span>Jasa Baru</span>
-              </Button>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              {feedback && (
-                <Alert
-                  variant={feedback.type === "error" ? "destructive" : "default"}
-                  className={
-                    feedback.type === "success"
-                      ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-                      : undefined
-                  }
-                >
-                  {feedback.type === "success" ? (
-                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <AlertCircle className="size-4" />
-                  )}
-                  <AlertDescription className="text-xs text-current">
-                    {feedback.text}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="relative">
-                <Search
-                  className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                  aria-hidden="true"
-                />
-                <Input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Cari jasa modifikasi"
-                  placeholder="Cari nama jasa modifikasi..."
-                  className="pl-8 h-8 text-xs"
-                />
-              </div>
-
-              <div className="border border-border rounded-lg overflow-hidden">
-                <Table className="text-xs">
-                  <TableHeader className="bg-muted/60">
-                    <TableRow>
-                      <TableHead className="px-3">Nama Jasa</TableHead>
-                      <TableHead className="px-3">Deskripsi Singkat</TableHead>
-                      <TableHead className="px-3 text-right">
-                        Harga Dasar
-                      </TableHead>
-                      <TableHead className="px-3 text-center">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredServices.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="py-6 text-center text-muted-foreground"
-                        >
-                          Tidak ada jasa modifikasi ditemukan.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredServices.map((s) => (
-                        <TableRow key={s.id}>
-                          <TableCell className="px-3 py-2.5 font-semibold text-foreground">
-                            {s.nama}
-                          </TableCell>
-                          <TableCell className="px-3 py-2.5 text-muted-foreground max-w-xs truncate">
-                            {s.deskripsi || "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-2.5 text-right font-semibold tabular-nums text-primary">
-                            {formatCurrency(Number(s.harga_dasar))}
-                          </TableCell>
-                          <TableCell className="px-3 py-2.5 text-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="xs"
-                              onClick={() => {
-                                setIsEditing(true);
-                                setForm({
-                                  id: s.id,
-                                  nama: s.nama,
-                                  deskripsi: s.deskripsi || "",
-                                  hargaDasar: Number(s.harga_dasar),
-                                });
-                              }}
-                            >
-                              Ubah
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Katalog Jasa
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Katalog paket modifikasi dan tarif harga dasar jasa pengerjaan bengkel.
+          </p>
         </div>
 
-        {/* Kolom Kanan: Form Tambah/Ubah Jasa */}
-        <div className="lg:col-span-5">
-          <Card className="py-0 gap-0">
-            <CardHeader className="p-4 sm:p-5 border-b border-border">
-              <CardTitle className="text-base font-semibold">
-                {isEditing ? "Ubah Jasa Modifikasi" : "Tambah Jasa Baru"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <form onSubmit={handleSave} className="space-y-3.5 text-xs">
-                <div className="space-y-1.5">
-                  <Label htmlFor="jasa-nama" className="text-xs font-semibold">
-                    Nama Jasa
-                  </Label>
-                  <Input
-                    id="jasa-nama"
-                    type="text"
-                    required
-                    value={form.nama}
-                    onChange={(e) => setForm({ ...form, nama: e.target.value })}
-                    placeholder="Contoh: Pengecatan Airbrush Tangki"
-                    className="h-9 text-xs"
-                  />
-                </div>
+        <Button
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={handleOpenCreate}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          <span>Jasa Baru</span>
+        </Button>
+      </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="jasa-desk" className="text-xs font-semibold">
-                    Deskripsi Singkat
-                  </Label>
-                  <Textarea
-                    id="jasa-desk"
-                    rows={4}
-                    value={form.deskripsi}
-                    onChange={(e) =>
-                      setForm({ ...form, deskripsi: e.target.value })
-                    }
-                    placeholder="Deskripsi langkah pengerjaan atau spesifikasi bahan..."
-                    className="text-xs"
-                  />
-                </div>
+      {feedback && (
+        <Alert
+          variant={feedback.type === "error" ? "destructive" : "default"}
+          className={
+            feedback.type === "success"
+              ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+              : undefined
+          }
+        >
+          {feedback.type === "success" ? (
+            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+          ) : (
+            <AlertCircle className="size-4" />
+          )}
+          <AlertDescription className="text-xs font-medium text-current">
+            {feedback.text}
+          </AlertDescription>
+        </Alert>
+      )}
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="jasa-harga" className="text-xs font-semibold">
-                    Harga Dasar (Rp)
-                  </Label>
-                  <Input
-                    id="jasa-harga"
-                    type="number"
-                    required
-                    min="0"
-                    step="50000"
-                    value={form.hargaDasar}
-                    onChange={(e) =>
-                      setForm({ ...form, hargaDasar: Number(e.target.value) })
-                    }
-                    className="h-9 text-xs font-mono tabular-nums"
-                  />
-                </div>
+      {/* Tabel Daftar Jasa Full Width */}
+      <Card className="py-0 gap-0 overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 space-y-0 border-b border-border">
+          <CardTitle className="text-base font-semibold">
+            Daftar Jasa ({services.length})
+          </CardTitle>
 
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={isSubmitting}
-                    className="text-xs"
+          <div className="relative w-full sm:w-72">
+            <Search
+              className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              aria-hidden="true"
+            />
+            <Input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Cari jasa modifikasi"
+              placeholder="Cari nama atau deskripsi jasa..."
+              className="pl-8 h-8 text-xs"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table className="text-xs">
+            <TableHeader className="bg-muted/60">
+              <TableRow>
+                <TableHead className="px-4">Nama Jasa</TableHead>
+                <TableHead className="px-4">Deskripsi Singkat</TableHead>
+                <TableHead className="px-4 text-right">Harga Dasar</TableHead>
+                <TableHead className="px-4 text-center w-24">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredServices.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="py-8 text-center text-muted-foreground"
                   >
-                    {isSubmitting
-                      ? "Menyimpan..."
-                      : isEditing
-                      ? "Perbarui Jasa"
-                      : "Simpan Jasa"}
-                  </Button>
-                  {isEditing && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSubmitting}
-                      className="text-xs"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setForm({
-                          id: 0,
-                          nama: "",
-                          deskripsi: "",
-                          hargaDasar: 500000,
-                        });
-                      }}
-                    >
-                      Batal
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                    Tidak ada jasa modifikasi ditemukan.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredServices.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="px-4 py-3 font-semibold text-foreground">
+                      {s.nama}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground max-w-md truncate">
+                      {s.deskripsi || "-"}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right font-semibold tabular-nums text-primary">
+                      {formatCurrency(Number(s.harga_dasar))}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        onClick={() => handleOpenEdit(s)}
+                      >
+                        Ubah
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Floating Window: Tambah / Ubah Jasa */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? "Ubah Jasa Modifikasi" : "Tambah Jasa Baru"}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {isEditing
+                ? "Perbarui informasi paket layanan dan tarif dasar jasa bengkel."
+                : "Tambahkan layanan modifikasi baru beserta tarif dasar pengerjaannya."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSave} className="space-y-3.5 text-xs">
+            {modalError && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription className="text-xs">
+                  {modalError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="jasa-nama" className="text-xs font-semibold">
+                Nama Jasa
+              </Label>
+              <Input
+                id="jasa-nama"
+                type="text"
+                required
+                value={form.nama}
+                onChange={(e) => setForm({ ...form, nama: e.target.value })}
+                placeholder="Contoh: Pengecatan Airbrush Tangki"
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="jasa-desk" className="text-xs font-semibold">
+                Deskripsi Singkat
+              </Label>
+              <Textarea
+                id="jasa-desk"
+                rows={4}
+                value={form.deskripsi}
+                onChange={(e) =>
+                  setForm({ ...form, deskripsi: e.target.value })
+                }
+                placeholder="Deskripsi langkah pengerjaan atau spesifikasi bahan..."
+                className="text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="jasa-harga" className="text-xs font-semibold">
+                Harga Dasar (Rp)
+              </Label>
+              <Input
+                id="jasa-harga"
+                type="number"
+                required
+                min="0"
+                step="50000"
+                value={form.hargaDasar}
+                onChange={(e) =>
+                  setForm({ ...form, hargaDasar: Number(e.target.value) })
+                }
+                className="h-9 text-xs font-mono tabular-nums"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isSubmitting}
+                onClick={() => setShowDialog(false)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={isSubmitting}>
+                {isSubmitting
+                  ? "Menyimpan..."
+                  : isEditing
+                  ? "Perbarui Jasa"
+                  : "Simpan Jasa"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </StaffLayout>
   );
 }

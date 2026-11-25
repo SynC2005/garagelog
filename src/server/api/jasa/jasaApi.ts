@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  getServices,
   createService,
   updateService,
 } from "@/server/services/jasa/jasaService";
 import { ApiResponse } from "@/types/api";
+import { serializeDecimals } from "@/utils/serialize";
 
 export async function createServiceAction(data: {
   nama: string;
@@ -17,7 +17,7 @@ export async function createServiceAction(data: {
     const service = await createService(data);
     revalidatePath("/jasa");
     revalidatePath("/pesanan/buat");
-    return { success: true, data: service };
+    return { success: true, data: serializeDecimals(service) };
   } catch (error: any) {
     return { success: false, error: error.message || "Gagal menambah jasa." };
   }
@@ -35,7 +35,7 @@ export async function updateServiceAction(
     const service = await updateService(id, data);
     revalidatePath("/jasa");
     revalidatePath("/pesanan/buat");
-    return { success: true, data: service };
+    return { success: true, data: serializeDecimals(service) };
   } catch (error: any) {
     return { success: false, error: error.message || "Gagal mengubah jasa." };
   }
