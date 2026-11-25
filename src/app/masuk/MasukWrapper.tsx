@@ -8,6 +8,7 @@ import {
   Lock,
   Mail,
   AlertCircle,
+  Clock,
   ArrowRight,
   ShieldCheck,
   Crown,
@@ -29,15 +30,71 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { loginStaffAction } from "@/server/api/auth/authApi";
 
+const LOCKOUT_STORAGE_KEY = "garagelog_login_lockout_until";
+
+function formatCountdown(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
 export function MasukWrapper() {
   const router = useRouter();
   const [email, setEmail] = React.useState("admin@garagelog.com");
   const [password, setPassword] = React.useState("bengkel123");
   const [error, setError] = React.useState<string | null>(null);
+  const [lockoutSeconds, setLockoutSeconds] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Pulihkan hitung mundur jika user memuat ulang halaman saat masih masa tunggu
+  React.useEffect(() => {
+    try {
+      const savedUntil = sessionStorage.getItem(LOCKOUT_STORAGE_KEY);
+      if (!savedUntil) return;
+      const untilMs = Number(savedUntil);
+      const remaining = Math.ceil((untilMs - Date.now()) / 1000);
+      if (remaining > 0) {
+        setLockoutSeconds(remaining);
+        setError(
+          "Batas 3x percobaan masuk tercapai. Tunggu hingga hitung mundur selesai sebelum mencoba lagi."
+        );
+      } else {
+        sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
+      }
+    } catch {}
+  }, []);
+
+  React.useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+
+    const timer = window.setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          try {
+            sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
+          } catch {}
+          setError(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [lockoutSeconds > 0]);
+
+  const applyDemoAccount = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("bengkel123");
+    if (lockoutSeconds === 0) {
+      setError(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutSeconds > 0) return;
+
     setError(null);
     setIsLoading(true);
 
@@ -49,7 +106,10 @@ export function MasukWrapper() {
     setIsLoading(false);
 
     if (res.success && res.data) {
-      sessionStorage.setItem("active_user", JSON.stringify(res.data));
+      try {
+        sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
+        sessionStorage.setItem("active_user", JSON.stringify(res.data));
+      } catch {}
       toast.success(`Selamat datang, ${res.data.nama}`);
       const targetRoute =
         res.data.defaultRoute ||
@@ -57,9 +117,18 @@ export function MasukWrapper() {
       router.push(targetRoute);
       router.refresh();
     } else {
-      setError(res.error || "Email atau kata sandi tidak valid.");
+      if (res.retryAfterSeconds && res.retryAfterSeconds > 0) {
+        const untilMs = Date.now() + res.retryAfterSeconds * 1000;
+        try {
+          sessionStorage.setItem(LOCKOUT_STORAGE_KEY, String(untilMs));
+        } catch {}
+        setLockoutSeconds(res.retryAfterSeconds);
+      }
+      setError(res.error || "Email atau kata sandi tidak sesuai.");
     }
   };
+
+  const isLocked = lockoutSeconds > 0;
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col justify-between p-4">
@@ -83,11 +152,26 @@ export function MasukWrapper() {
 
           <CardContent className="p-6 pt-2 space-y-5">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
+              {isLocked ? (
                 <Alert variant="destructive">
-                  <AlertCircle className="size-4" />
-                  <AlertDescription className="text-xs">{error}</AlertDescription>
+                  <Clock className="size-4" aria-hidden="true" />
+                  <AlertDescription className="text-xs space-y-1.5">
+                    <p role="alert" className="font-medium">
+                      {error ||
+                        "Terlalu banyak percobaan masuk yang gagal. Tunggu 1 menit sebelum mencoba lagi."}
+                    </p>
+                    <p className="tabular-nums font-semibold">
+                      Waktu tunggu tersisa: {formatCountdown(lockoutSeconds)}
+                    </p>
+                  </AlertDescription>
                 </Alert>
+              ) : (
+                error && (
+                  <Alert variant="destructive" role="alert">
+                    <AlertCircle className="size-4" aria-hidden="true" />
+                    <AlertDescription className="text-xs">{error}</AlertDescription>
+                  </Alert>
+                )
               )}
 
               <div className="space-y-1.5">
@@ -136,10 +220,14 @@ export function MasukWrapper() {
 
               <Button
                 type="submit"
-                disabled={isLoading}
-                className="w-full h-10 text-sm font-semibold"
+                disabled={isLoading || isLocked}
+                className="w-full h-10 text-sm font-semibold tabular-nums"
               >
-                {isLoading ? "Memproses..." : "Masuk"}
+                {isLoading
+                  ? "Memproses..."
+                  : isLocked
+                  ? `Tunggu ${formatCountdown(lockoutSeconds)}`
+                  : "Masuk"}
               </Button>
             </form>
 
@@ -155,11 +243,7 @@ export function MasukWrapper() {
                   type="button"
                   size="sm"
                   variant={email === "budi.montir@garagelog.com" ? "secondary" : "outline"}
-                  onClick={() => {
-                    setEmail("budi.montir@garagelog.com");
-                    setPassword("bengkel123");
-                    setError(null);
-                  }}
+                  onClick={() => applyDemoAccount("budi.montir@garagelog.com")}
                   className={
                     email === "budi.montir@garagelog.com"
                       ? "border-primary text-primary text-xs"
@@ -173,11 +257,7 @@ export function MasukWrapper() {
                   type="button"
                   size="sm"
                   variant={email === "admin@garagelog.com" ? "secondary" : "outline"}
-                  onClick={() => {
-                    setEmail("admin@garagelog.com");
-                    setPassword("bengkel123");
-                    setError(null);
-                  }}
+                  onClick={() => applyDemoAccount("admin@garagelog.com")}
                   className={
                     email === "admin@garagelog.com"
                       ? "border-primary text-primary text-xs"
@@ -191,11 +271,7 @@ export function MasukWrapper() {
                   type="button"
                   size="sm"
                   variant={email === "owner@garagelog.com" ? "secondary" : "outline"}
-                  onClick={() => {
-                    setEmail("owner@garagelog.com");
-                    setPassword("bengkel123");
-                    setError(null);
-                  }}
+                  onClick={() => applyDemoAccount("owner@garagelog.com")}
                   className={
                     email === "owner@garagelog.com"
                       ? "border-primary text-primary text-xs"

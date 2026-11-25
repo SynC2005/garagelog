@@ -255,3 +255,14 @@ model HakAksesPeran {
   @@map("hak_akses_peran")
 }
 
+model RateLimitLogin {
+  id              Int       @id @default(autoincrement())
+  kunci           String    @unique
+  percobaan       Int       @default(0)
+  terkunci_hingga DateTime?
+  updated_at      DateTime  @updatedAt
+
+  @@index([terkunci_hingga])
+  @@map("rate_limit_login")
+}
+
