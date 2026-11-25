@@ -1,5 +1,7 @@
 import { DetailPesananWrapper } from "./DetailPesananWrapper";
 import { getOrderByCode } from "@/server/services/pesanan/pesananService";
+import { requirePageAccess } from "@/server/services/auth/rbacService";
+import { AccessDeniedView } from "@/components/layout/AccessDeniedView";
 import { serializeDecimals } from "@/utils/serialize";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle } from "lucide-react";
@@ -22,7 +24,20 @@ export async function generateMetadata({ params }: DetailPesananPageProps) {
   };
 }
 
-export default async function DetailPesananPage({ params }: DetailPesananPageProps) {
+export default async function DetailPesananPage({
+  params,
+}: DetailPesananPageProps) {
+  const access = await requirePageAccess("pesanan");
+  if (!access.hasAccess) {
+    return (
+      <AccessDeniedView
+        staff={{ nama: access.user.nama, peran: access.user.peran }}
+        allowedFeatures={access.allowedFeatures}
+        featureName="Detail Pesanan"
+      />
+    );
+  }
+
   const { kode } = await params;
   const order = await getOrderByCode(kode);
 
@@ -58,5 +73,17 @@ export default async function DetailPesananPage({ params }: DetailPesananPagePro
     );
   }
 
-  return <DetailPesananWrapper order={serializeDecimals(order)} />;
+  return (
+    <DetailPesananWrapper
+      order={serializeDecimals(order)}
+      activeStaff={{ nama: access.user.nama, peran: access.user.peran }}
+      allowedFeatures={access.allowedFeatures}
+      canManageOrder={access.canManage}
+      canViewNota={access.permissions.pembayaran.dapat_akses}
+      canManagePayment={
+        access.permissions.pembayaran.dapat_akses &&
+        access.permissions.pembayaran.dapat_kelola
+      }
+    />
+  );
 }

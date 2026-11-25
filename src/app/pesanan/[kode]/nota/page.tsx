@@ -1,5 +1,7 @@
 import { NotaWrapper } from "./NotaWrapper";
 import { getOrderByCode } from "@/server/services/pesanan/pesananService";
+import { requirePageAccess } from "@/server/services/auth/rbacService";
+import { AccessDeniedView } from "@/components/layout/AccessDeniedView";
 import { serializeDecimals } from "@/utils/serialize";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle } from "lucide-react";
@@ -22,6 +24,17 @@ export async function generateMetadata({ params }: NotaPageProps) {
 }
 
 export default async function NotaPage({ params }: NotaPageProps) {
+  const access = await requirePageAccess("pembayaran");
+  if (!access.hasAccess) {
+    return (
+      <AccessDeniedView
+        staff={{ nama: access.user.nama, peran: access.user.peran }}
+        allowedFeatures={access.allowedFeatures}
+        featureName="Pembayaran & Cetak Nota"
+      />
+    );
+  }
+
   const { kode } = await params;
   const order = await getOrderByCode(kode);
 

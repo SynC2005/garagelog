@@ -41,6 +41,8 @@ import {
 } from "@/components/ui/table";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { createOrderAction } from "@/server/api/pesanan/pesananApi";
+import type { FeatureCode } from "@/lib/rbac";
+import type { PeranUser } from "@prisma/client";
 
 interface CustomerWithVehicles {
   id: number;
@@ -81,6 +83,8 @@ interface BuatPesananWrapperProps {
   servicesCatalog: ServiceItem[];
   sparePartsCatalog: SparePartItem[];
   stageTemplates: StageTemplateItem[];
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
 }
 
 export function BuatPesananWrapper({
@@ -88,6 +92,8 @@ export function BuatPesananWrapper({
   servicesCatalog,
   sparePartsCatalog,
   stageTemplates,
+  activeStaff,
+  allowedFeatures,
 }: BuatPesananWrapperProps) {
   const router = useRouter();
 
@@ -251,7 +257,7 @@ export function BuatPesananWrapper({
   };
 
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header Form */}
       <div className="flex items-center gap-3">
         <Button asChild variant="outline" size="icon">

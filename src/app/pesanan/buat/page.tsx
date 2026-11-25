@@ -3,16 +3,30 @@ import { getCustomers } from "@/server/services/pelanggan/pelangganService";
 import { getServices } from "@/server/services/jasa/jasaService";
 import { getInventory } from "@/server/services/stok/stokService";
 import { getStageTemplates } from "@/server/services/pengaturan/pengaturanService";
+import { requirePageAccess } from "@/server/services/auth/rbacService";
+import { AccessDeniedView } from "@/components/layout/AccessDeniedView";
 import { serializeDecimals } from "@/utils/serialize";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Buat Pesanan Baru — GarageLog",
-  description: "Formulir pembuatan pesanan modifikasi dan estimasi biaya bengkel.",
+  description:
+    "Formulir pembuatan pesanan modifikasi dan estimasi biaya bengkel.",
 };
 
 export default async function BuatPesananPage() {
+  const access = await requirePageAccess("pesanan");
+  if (!access.hasAccess || !access.canManage) {
+    return (
+      <AccessDeniedView
+        staff={{ nama: access.user.nama, peran: access.user.peran }}
+        allowedFeatures={access.allowedFeatures}
+        featureName="Buat Pesanan Modifikasi"
+      />
+    );
+  }
+
   const [customers, services, spareParts, stageTemplates] = await Promise.all([
     getCustomers(),
     getServices(),
@@ -40,6 +54,8 @@ export default async function BuatPesananPage() {
       servicesCatalog={formattedServices}
       sparePartsCatalog={formattedParts}
       stageTemplates={serializeDecimals(stageTemplates)}
+      activeStaff={{ nama: access.user.nama, peran: access.user.peran }}
+      allowedFeatures={access.allowedFeatures}
     />
   );
 }

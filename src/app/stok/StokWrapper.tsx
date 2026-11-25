@@ -48,7 +48,8 @@ import {
   createPartAction,
   updatePartAction,
 } from "@/server/api/stok/stokApi";
-import { JenisPergerakanStok } from "@prisma/client";
+import { JenisPergerakanStok, PeranUser } from "@prisma/client";
+import type { FeatureCode } from "@/lib/rbac";
 
 interface SukuCadangItem {
   id: number;
@@ -75,11 +76,17 @@ interface StockMovementItem {
 interface StokWrapperProps {
   initialItems: SukuCadangItem[];
   initialMovements: StockMovementItem[];
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canManage?: boolean;
 }
 
 export function StokWrapper({
   initialItems,
   initialMovements,
+  activeStaff,
+  allowedFeatures,
+  canManage = true,
 }: StokWrapperProps) {
   const [items, setItems] = React.useState<SukuCadangItem[]>(initialItems);
   const [movements, setMovements] =
@@ -338,27 +345,36 @@ export function StokWrapper({
   };
 
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Stok Suku Cadang &amp; Aksesori
-          </h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Stok Suku Cadang &amp; Aksesori
+            </h1>
+            {!canManage && (
+              <Badge variant="outline" className="text-[11px]">
+                Mode Baca Saja
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Pengelolaan inventori barang, pencatatan barang masuk, dan audit
             koreksi stok fisik.
           </p>
         </div>
 
-        <Button
-          size="sm"
-          className="w-full sm:w-auto"
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          <span>Tambah Barang</span>
-        </Button>
+        {canManage && (
+          <Button
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            <span>Tambah Barang</span>
+          </Button>
+        )}
       </div>
 
       {/* 3 KPI Stat Cards */}
@@ -456,14 +472,16 @@ export function StokWrapper({
                 <TableHead className="px-4 text-center">Minimum</TableHead>
                 <TableHead className="px-4 text-right">Harga Jual</TableHead>
                 <TableHead className="px-4 text-center">Status</TableHead>
-                <TableHead className="px-4 text-center">Aksi</TableHead>
+                {canManage && (
+                  <TableHead className="px-4 text-center">Aksi</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredItems.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={canManage ? 7 : 6}
                     className="py-8 text-center text-muted-foreground"
                   >
                     Tidak ada suku cadang yang sesuai filter.
@@ -501,15 +519,17 @@ export function StokWrapper({
                           {isHabis ? "Habis" : isMenipis ? "Menipis" : "Aman"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-center">
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => handleOpenEdit(item)}
-                        >
-                          Ubah
-                        </Button>
-                      </TableCell>
+                      {canManage && (
+                        <TableCell className="px-4 py-3 text-center">
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            onClick={() => handleOpenEdit(item)}
+                          >
+                            Ubah
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })
@@ -521,6 +541,7 @@ export function StokWrapper({
 
       {/* Grid Bawah: Barang Masuk / Koreksi & Riwayat Pergerakan */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {canManage && (
         <div className="lg:col-span-5">
           <Card className="py-0 gap-0">
             <CardHeader className="p-4 sm:p-5 border-b border-border">
@@ -671,9 +692,10 @@ export function StokWrapper({
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Tabel Riwayat Pergerakan Stok */}
-        <div className="lg:col-span-7">
+        <div className={canManage ? "lg:col-span-7" : "lg:col-span-12"}>
           <Card className="py-0 gap-0 overflow-hidden">
             <CardHeader className="p-4 sm:p-5 border-b border-border">
               <CardTitle className="text-base font-semibold">

@@ -34,7 +34,8 @@ import {
   addProgressUpdateAction,
   completeTaskStageAction,
 } from "@/server/api/tugas/tugasApi";
-import { JenisPembaruan } from "@prisma/client";
+import { JenisPembaruan, PeranUser } from "@prisma/client";
+import type { FeatureCode } from "@/lib/rbac";
 
 interface TaskStage {
   id: number;
@@ -54,9 +55,17 @@ interface ActiveOrderTask {
 
 interface TugasWrapperProps {
   initialTasks?: any[];
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canManage?: boolean;
 }
 
-export function TugasWrapper({ initialTasks }: TugasWrapperProps) {
+export function TugasWrapper({
+  initialTasks,
+  activeStaff,
+  allowedFeatures,
+  canManage = true,
+}: TugasWrapperProps) {
   const parsedTasks: ActiveOrderTask[] = React.useMemo(() => {
     if (initialTasks && initialTasks.length > 0) {
       return initialTasks.map((t: any) => ({
@@ -265,12 +274,22 @@ export function TugasWrapper({ initialTasks }: TugasWrapperProps) {
   );
 
   return (
-    <StaffLayout activeStaff={{ nama: "Budi Montir", peran: "Montir" }}>
+    <StaffLayout
+      activeStaff={activeStaff || { nama: "Budi Montir", peran: "Montir" }}
+      allowedFeatures={allowedFeatures}
+    >
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Tugas Pengerjaan
-        </h1>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Tugas Pengerjaan
+          </h1>
+          {!canManage && (
+            <Badge variant="outline" className="text-[11px]">
+              Mode Baca Saja
+            </Badge>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Daftar pesanan aktif bengkel untuk montir dan admin. Perbarui tahap dan
           unggah dokumentasi foto.
@@ -422,7 +441,8 @@ export function TugasWrapper({ initialTasks }: TugasWrapperProps) {
           </Card>
 
           {/* Form Tambah Pembaruan */}
-          <Card className="py-0 gap-0">
+          {canManage && (
+            <Card className="py-0 gap-0">
             <CardHeader className="p-4 sm:p-5 border-b border-border">
               <CardTitle className="text-base font-semibold">
                 Tambah Pembaruan Progres
@@ -611,6 +631,7 @@ export function TugasWrapper({ initialTasks }: TugasWrapperProps) {
               </div>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
     </StaffLayout>

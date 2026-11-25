@@ -51,11 +51,11 @@ export function MasukWrapper() {
     if (res.success && res.data) {
       sessionStorage.setItem("active_user", JSON.stringify(res.data));
       toast.success(`Selamat datang, ${res.data.nama}`);
-      if (res.data.peran === "Montir") {
-        router.push("/tugas");
-      } else {
-        router.push("/dashboard");
-      }
+      const targetRoute =
+        res.data.defaultRoute ||
+        (res.data.peran === "Montir" ? "/tugas" : "/dashboard");
+      router.push(targetRoute);
+      router.refresh();
     } else {
       setError(res.error || "Email atau kata sandi tidak valid.");
     }

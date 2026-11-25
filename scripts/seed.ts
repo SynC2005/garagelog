@@ -1,5 +1,6 @@
 import { PrismaClient, PeranUser, StatusPesanan, StatusTahap, JenisPembaruan, JenisPergerakanStok, MetodePembayaran } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DEFAULT_ROLE_PERMISSIONS, RBAC_FEATURES } from "../src/lib/rbac";
 
 const prisma = new PrismaClient();
 
@@ -46,6 +47,29 @@ async function main() {
   });
 
   console.log("Users seeded: Admin, Montir, Pemilik");
+
+  // 1b. Seed Konfigurasi Hak Akses Peran (RBAC)
+  for (const peran of Object.values(PeranUser)) {
+    const defaults = DEFAULT_ROLE_PERMISSIONS[peran];
+    for (const feature of RBAC_FEATURES) {
+      const rule = defaults[feature.kode];
+      await prisma.hakAksesPeran.upsert({
+        where: {
+          peran_fitur_kode: { peran, fitur_kode: feature.kode },
+        },
+        update: {},
+        create: {
+          peran,
+          fitur_kode: feature.kode,
+          nama_fitur: feature.nama,
+          rute: feature.rute,
+          dapat_akses: rule.dapat_akses,
+          dapat_kelola: rule.dapat_kelola,
+        },
+      });
+    }
+  }
+  console.log("Role permissions seeded");
 
   // 2. Seed Template Tahapan Bawaan (Tabel 12 PRD) (FR-16)
   const defaultTemplates = [

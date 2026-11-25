@@ -240,3 +240,18 @@ model Pembayaran {
   @@map("pembayaran")
 }
 
+model HakAksesPeran {
+  id           Int       @id @default(autoincrement())
+  peran        PeranUser
+  fitur_kode   String
+  nama_fitur   String
+  rute         String
+  dapat_akses  Boolean   @default(false)
+  dapat_kelola Boolean   @default(false)
+  updated_at   DateTime  @updatedAt
+
+  @@unique([peran, fitur_kode])
+  @@index([peran])
+  @@map("hak_akses_peran")
+}
+

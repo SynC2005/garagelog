@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import {
   createOrder,
   approveAndStartOrder,
-  getOrders,
   getOrderByCode,
   recordPayment,
 } from "@/server/services/pesanan/pesananService";
+import { requireActionPermission } from "@/server/services/auth/rbacService";
+import { serializeDecimals } from "@/utils/serialize";
 import { ApiResponse } from "@/types/api";
-import { MetodePembayaran, StatusPesanan } from "@prisma/client";
+import { MetodePembayaran } from "@prisma/client";
 
 export async function createOrderAction(data: {
   pelangganId: number;
@@ -22,27 +23,37 @@ export async function createOrderAction(data: {
   tahapIds: number[];
 }): Promise<ApiResponse<any>> {
   try {
+    const actor = await requireActionPermission("pesanan", "kelola");
     const order = await createOrder({
       ...data,
-      perkiraanSelesai: data.perkiraanSelesai ? new Date(data.perkiraanSelesai) : undefined,
+      dibuatOlehId: actor.id,
+      perkiraanSelesai: data.perkiraanSelesai
+        ? new Date(data.perkiraanSelesai)
+        : undefined,
     });
     revalidatePath("/pesanan");
     revalidatePath("/dashboard");
-    return { success: true, data: order };
+    return { success: true, data: serializeDecimals(order) };
   } catch (error: any) {
     return { success: false, error: error.message || "Gagal membuat pesanan." };
   }
 }
 
-export async function approveOrderAction(pesananId: number): Promise<ApiResponse<any>> {
+export async function approveOrderAction(
+  pesananId: number
+): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("pesanan", "kelola");
     const updated = await approveAndStartOrder(pesananId);
     revalidatePath("/pesanan");
     revalidatePath("/dashboard");
     revalidatePath("/tugas");
-    return { success: true, data: updated };
+    return { success: true, data: serializeDecimals(updated) };
   } catch (error: any) {
-    return { success: false, error: error.message || "Gagal menyetujui pesanan." };
+    return {
+      success: false,
+      error: error.message || "Gagal menyetujui pesanan.",
+    };
   }
 }
 
@@ -53,21 +64,30 @@ export async function recordPaymentAction(data: {
   dicatatOlehId: number;
 }): Promise<ApiResponse<any>> {
   try {
-    const payment = await recordPayment(data);
-    revalidatePath(`/pesanan`);
-    return { success: true, data: payment };
+    const actor = await requireActionPermission("pembayaran", "kelola");
+    const payment = await recordPayment({
+      ...data,
+      dicatatOlehId: actor.id,
+    });
+    revalidatePath("/pesanan");
+    return { success: true, data: serializeDecimals(payment) };
   } catch (error: any) {
-    return { success: false, error: error.message || "Gagal mencatat pembayaran." };
+    return {
+      success: false,
+      error: error.message || "Gagal mencatat pembayaran.",
+    };
   }
 }
 
-export async function getOrderByCodeAction(kode: string): Promise<ApiResponse<any>> {
+export async function getOrderByCodeAction(
+  kode: string
+): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("pesanan", "akses");
     const order = await getOrderByCode(kode);
     if (!order) return { success: false, error: "Pesanan tidak ditemukan." };
-    return { success: true, data: order };
+    return { success: true, data: serializeDecimals(order) };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
-

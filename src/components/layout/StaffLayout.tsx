@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -27,6 +27,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import type { FeatureCode } from "@/lib/rbac";
+import { logoutStaffAction } from "@/server/api/auth/authApi";
 
 interface StaffLayoutProps {
   children: React.ReactNode;
@@ -34,51 +36,80 @@ interface StaffLayoutProps {
     nama: string;
     peran: "Admin" | "Montir" | "Pemilik";
   };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
 }
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Pesanan", href: "/pesanan", icon: ClipboardList },
-  { label: "Tugas Pengerjaan", href: "/tugas", icon: Wrench },
-  { label: "Pelanggan & Kendaraan", href: "/pelanggan", icon: Users },
-  { label: "Katalog Jasa", href: "/jasa", icon: BookOpen },
-  { label: "Stok", href: "/stok", icon: Boxes },
-  { label: "Laporan", href: "/laporan", icon: BarChart3 },
-  { label: "Pengaturan", href: "/pengaturan", icon: Settings },
+const navItems: {
+  label: string;
+  href: string;
+  feature: FeatureCode;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { label: "Dashboard", href: "/dashboard", feature: "dashboard", icon: LayoutDashboard },
+  { label: "Pesanan", href: "/pesanan", feature: "pesanan", icon: ClipboardList },
+  { label: "Tugas Pengerjaan", href: "/tugas", feature: "tugas", icon: Wrench },
+  { label: "Pelanggan & Kendaraan", href: "/pelanggan", feature: "pelanggan", icon: Users },
+  { label: "Katalog Jasa", href: "/jasa", feature: "jasa", icon: BookOpen },
+  { label: "Stok", href: "/stok", feature: "stok", icon: Boxes },
+  { label: "Laporan", href: "/laporan", feature: "laporan", icon: BarChart3 },
+  { label: "Pengaturan", href: "/pengaturan", feature: "pengaturan", icon: Settings },
 ];
 
 export function StaffLayout({
   children,
-  activeStaff = { nama: "Farid Yusron", peran: "Admin" },
+  activeStaff,
+  allowedFeatures,
 }: StaffLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [currentUser, setCurrentUser] = React.useState(activeStaff);
+  const [fallbackUser, setFallbackUser] = React.useState<{
+    nama: string;
+    peran: "Admin" | "Montir" | "Pemilik";
+  }>({ nama: "Staf Bengkel", peran: "Admin" });
 
   React.useEffect(() => {
+    if (activeStaff) return;
     try {
       const stored = sessionStorage.getItem("active_user");
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.nama && parsed.peran) {
-          setCurrentUser({
+          setFallbackUser({
             nama: parsed.nama,
             peran: parsed.peran,
           });
         }
       }
     } catch {}
-  }, []);
+  }, [activeStaff]);
 
-  const handleLogout = () => {
+  const currentUser = activeStaff || fallbackUser;
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (!allowedFeatures) return true;
+    return allowedFeatures[item.feature] === true;
+  });
+
+  const homeHref =
+    currentUser.peran === "Montir" && (!allowedFeatures || allowedFeatures.tugas)
+      ? "/tugas"
+      : !allowedFeatures || allowedFeatures.dashboard
+      ? "/dashboard"
+      : visibleNavItems[0]?.href || "/pesanan";
+
+  const handleLogout = async () => {
     try {
       sessionStorage.removeItem("active_user");
     } catch {}
+    await logoutStaffAction();
+    router.push("/masuk");
+    router.refresh();
   };
 
   const SidebarBrand = (
     <Link
-      href="/dashboard"
+      href={homeHref}
       onClick={() => setMobileMenuOpen(false)}
       className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
     >
@@ -98,7 +129,7 @@ export function StaffLayout({
 
   const SidebarNav = (
     <nav className="flex-1 overflow-y-auto p-3 space-y-1" aria-label="Navigasi Staf">
-      {navItems.map((item) => {
+      {visibleNavItems.map((item) => {
         const Icon = item.icon;
         const isActive =
           pathname === item.href ||
@@ -156,11 +187,15 @@ export function StaffLayout({
         <ThemeToggle />
       </div>
 
-      <Button asChild variant="outline" size="sm" className="w-full justify-center">
-        <Link href="/masuk" onClick={handleLogout}>
-          <LogOut className="size-3.5 text-destructive" aria-hidden="true" />
-          <span>Keluar</span>
-        </Link>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleLogout}
+        className="w-full justify-center"
+      >
+        <LogOut className="size-3.5 text-destructive" aria-hidden="true" />
+        <span>Keluar</span>
       </Button>
     </div>
   );

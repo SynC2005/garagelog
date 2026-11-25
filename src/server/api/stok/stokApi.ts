@@ -1,7 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { adjustStock, createPart, updatePart } from "@/server/services/stok/stokService";
+import {
+  adjustStock,
+  createPart,
+  updatePart,
+} from "@/server/services/stok/stokService";
+import { requireActionPermission } from "@/server/services/auth/rbacService";
 import { JenisPergerakanStok } from "@prisma/client";
 import { serializeDecimals } from "@/utils/serialize";
 
@@ -19,13 +24,17 @@ export async function createPartAction(formData: {
   stok_minimum?: number;
 }): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("stok", "kelola");
     const res = await createPart(formData);
     revalidatePath("/stok");
     revalidatePath("/pesanan/buat");
     revalidatePath("/dashboard");
     return { success: true, data: serializeDecimals(res) };
   } catch (err: any) {
-    return { success: false, error: err.message || "Gagal menambahkan suku cadang baru." };
+    return {
+      success: false,
+      error: err.message || "Gagal menambahkan suku cadang baru.",
+    };
   }
 }
 
@@ -39,12 +48,16 @@ export async function updatePartAction(
   }
 ): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("stok", "kelola");
     const res = await updatePart(id, data);
     revalidatePath("/stok");
     revalidatePath("/pesanan/buat");
     return { success: true, data: serializeDecimals(res) };
   } catch (err: any) {
-    return { success: false, error: err.message || "Gagal memperbarui suku cadang." };
+    return {
+      success: false,
+      error: err.message || "Gagal memperbarui suku cadang.",
+    };
   }
 }
 
@@ -55,12 +68,15 @@ export async function adjustStockAction(formData: {
   alasan: string;
 }): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("stok", "kelola");
     const res = await adjustStock(formData);
     revalidatePath("/stok");
     revalidatePath("/dashboard");
     return { success: true, data: serializeDecimals(res) };
   } catch (err: any) {
-    return { success: false, error: err.message || "Gagal mencatat pergerakan stok." };
+    return {
+      success: false,
+      error: err.message || "Gagal mencatat pergerakan stok.",
+    };
   }
 }
-

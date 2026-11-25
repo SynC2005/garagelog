@@ -32,14 +32,25 @@ import {
   updateVehicleAction,
 } from "@/server/api/pelanggan/pelangganApi";
 import type { getCustomers } from "@/server/services/pelanggan/pelangganService";
+import type { FeatureCode } from "@/lib/rbac";
+import type { PeranUser } from "@prisma/client";
+import { Badge } from "@/components/ui/badge";
 
 type CustomerList = Awaited<ReturnType<typeof getCustomers>>;
 
 interface PelangganWrapperProps {
   initialCustomers: CustomerList;
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canManage?: boolean;
 }
 
-export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
+export function PelangganWrapper({
+  initialCustomers,
+  activeStaff,
+  allowedFeatures,
+  canManage = true,
+}: PelangganWrapperProps) {
   const [customers, setCustomers] = React.useState(initialCustomers);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<number>(
     initialCustomers[0]?.id || 0
@@ -262,12 +273,19 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
   };
 
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Pelanggan dan Kendaraan
-        </h1>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Pelanggan dan Kendaraan
+          </h1>
+          {!canManage && (
+            <Badge variant="outline" className="text-[11px]">
+              Mode Baca Saja
+            </Badge>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Data master pelanggan beserta unit motor miliknya untuk registrasi
           pesanan bengkel.
@@ -283,10 +301,12 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
               <CardTitle className="text-base font-semibold">
                 Daftar Pelanggan
               </CardTitle>
-              <Button size="xs" onClick={handleOpenCreateCustomer}>
-                <Plus className="size-3.5" aria-hidden="true" />
-                <span>Pelanggan</span>
-              </Button>
+              {canManage && (
+                <Button size="xs" onClick={handleOpenCreateCustomer}>
+                  <Plus className="size-3.5" aria-hidden="true" />
+                  <span>Pelanggan</span>
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {feedback && (
@@ -333,14 +353,16 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                       <TableHead className="px-3 text-center">
                         Unit Motor
                       </TableHead>
-                      <TableHead className="px-3 text-center">Aksi</TableHead>
+                      {canManage && (
+                        <TableHead className="px-3 text-center">Aksi</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCustomers.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={4}
+                          colSpan={canManage ? 4 : 3}
                           className="py-6 text-center text-muted-foreground"
                         >
                           Tidak ada data pelanggan ditemukan.
@@ -365,19 +387,21 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                             <TableCell className="px-3 py-2.5 text-center font-bold tabular-nums text-primary">
                               {c.kendaraan?.length || 0}
                             </TableCell>
-                            <TableCell className="px-3 py-2.5 text-center">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="xs"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenEditCustomer(c);
-                                }}
-                              >
-                                Ubah
-                              </Button>
-                            </TableCell>
+                            {canManage && (
+                              <TableCell className="px-3 py-2.5 text-center">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenEditCustomer(c);
+                                  }}
+                                >
+                                  Ubah
+                                </Button>
+                              </TableCell>
+                            )}
                           </TableRow>
                         );
                       })
@@ -402,28 +426,29 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                 </p>
               </div>
 
-              <Button
-                size="xs"
-                onClick={() => {
-                  setIsEditingVehicle(false);
-                  setVehicleForm({
-                    id: 0,
-                    merek: "",
-                    model: "",
-                    tahun: new Date().getFullYear(),
-                    nopol: "",
-                  });
-                }}
-              >
-                <Plus className="size-3.5" aria-hidden="true" />
-                <span>Kendaraan</span>
-              </Button>
+              {canManage && (
+                <Button
+                  size="xs"
+                  onClick={() => {
+                    setIsEditingVehicle(false);
+                    setVehicleForm({
+                      id: 0,
+                      merek: "",
+                      model: "",
+                      tahun: new Date().getFullYear(),
+                      nopol: "",
+                    });
+                  }}
+                >
+                  <Plus className="size-3.5" aria-hidden="true" />
+                  <span>Kendaraan</span>
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-4">
               {customerVehicles.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-6 text-center">
-                  Pelanggan ini belum memiliki motor terdaftar. Tambahkan
-                  kendaraan di formulir bawah.
+                  Pelanggan ini belum memiliki motor terdaftar.
                 </p>
               ) : (
                 <div className="border border-border rounded-lg overflow-hidden">
@@ -436,7 +461,9 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                         <TableHead className="px-3 font-mono">
                           No. Polisi
                         </TableHead>
-                        <TableHead className="px-3 text-center">Aksi</TableHead>
+                        {canManage && (
+                          <TableHead className="px-3 text-center">Aksi</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -454,25 +481,27 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                           <TableCell className="px-3 py-2.5 font-mono font-bold text-primary">
                             {v.nomor_polisi}
                           </TableCell>
-                          <TableCell className="px-3 py-2.5 text-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="xs"
-                              onClick={() => {
-                                setIsEditingVehicle(true);
-                                setVehicleForm({
-                                  id: v.id,
-                                  merek: v.merek,
-                                  model: v.model,
-                                  tahun: v.tahun,
-                                  nopol: v.nomor_polisi,
-                                });
-                              }}
-                            >
-                              Ubah
-                            </Button>
-                          </TableCell>
+                          {canManage && (
+                            <TableCell className="px-3 py-2.5 text-center">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="xs"
+                                onClick={() => {
+                                  setIsEditingVehicle(true);
+                                  setVehicleForm({
+                                    id: v.id,
+                                    merek: v.merek,
+                                    model: v.model,
+                                    tahun: v.tahun,
+                                    nopol: v.nomor_polisi,
+                                  });
+                                }}
+                              >
+                                Ubah
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -482,6 +511,7 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
             </CardContent>
           </Card>
 
+          {canManage && (
           <Card className="py-0 gap-0">
             <CardHeader className="p-4 border-b border-border">
               <CardTitle className="text-sm font-semibold">
@@ -605,6 +635,7 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
               </form>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
 

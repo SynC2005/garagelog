@@ -28,6 +28,8 @@ import {
 import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDate } from "@/utils/formatDate";
 import { getFilteredReportAction } from "@/server/api/laporan/laporanApi";
+import type { FeatureCode } from "@/lib/rbac";
+import type { PeranUser } from "@prisma/client";
 
 interface OrderReportItem {
   id: number;
@@ -59,9 +61,15 @@ interface ReportData {
 
 interface LaporanWrapperProps {
   initialData: ReportData;
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
 }
 
-export function LaporanWrapper({ initialData }: LaporanWrapperProps) {
+export function LaporanWrapper({
+  initialData,
+  activeStaff,
+  allowedFeatures,
+}: LaporanWrapperProps) {
   const [data, setData] = React.useState<ReportData>(initialData);
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -91,7 +99,10 @@ export function LaporanWrapper({ initialData }: LaporanWrapperProps) {
   };
 
   return (
-    <StaffLayout activeStaff={{ nama: "Pak Hendro", peran: "Pemilik" }}>
+    <StaffLayout
+      activeStaff={activeStaff || { nama: "Pak Hendro", peran: "Pemilik" }}
+      allowedFeatures={allowedFeatures}
+    >
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">

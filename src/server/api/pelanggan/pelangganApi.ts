@@ -7,6 +7,7 @@ import {
   createVehicle,
   updateVehicle,
 } from "@/server/services/pelanggan/pelangganService";
+import { requireActionPermission } from "@/server/services/auth/rbacService";
 
 export type ApiResponse<T> = {
   success: boolean;
@@ -19,12 +20,16 @@ export async function createCustomerAction(formData: {
   telepon: string;
 }): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("pelanggan", "kelola");
     const res = await createCustomer(formData);
     revalidatePath("/pelanggan");
     revalidatePath("/pesanan/buat");
     return { success: true, data: res };
   } catch (err: any) {
-    return { success: false, error: err.message || "Gagal membuat data pelanggan." };
+    return {
+      success: false,
+      error: err.message || "Gagal membuat data pelanggan.",
+    };
   }
 }
 
@@ -33,12 +38,16 @@ export async function updateCustomerAction(
   formData: { nama: string; telepon: string }
 ): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("pelanggan", "kelola");
     const res = await updateCustomer(id, formData);
     revalidatePath("/pelanggan");
     revalidatePath("/pesanan/buat");
     return { success: true, data: res };
   } catch (err: any) {
-    return { success: false, error: err.message || "Gagal memperbarui data pelanggan." };
+    return {
+      success: false,
+      error: err.message || "Gagal memperbarui data pelanggan.",
+    };
   }
 }
 
@@ -50,12 +59,16 @@ export async function createVehicleAction(formData: {
   nomorPolisi: string;
 }): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("pelanggan", "kelola");
     const res = await createVehicle(formData);
     revalidatePath("/pelanggan");
     revalidatePath("/pesanan/buat");
     return { success: true, data: res };
   } catch (err: any) {
-    return { success: false, error: err.message || "Gagal mendaftarkan kendaraan." };
+    return {
+      success: false,
+      error: err.message || "Gagal mendaftarkan kendaraan.",
+    };
   }
 }
 
@@ -69,12 +82,15 @@ export async function updateVehicleAction(
   }
 ): Promise<ApiResponse<any>> {
   try {
+    await requireActionPermission("pelanggan", "kelola");
     const res = await updateVehicle(id, formData);
     revalidatePath("/pelanggan");
     revalidatePath("/pesanan/buat");
     return { success: true, data: res };
   } catch (err: any) {
-    return { success: false, error: err.message || "Gagal memperbarui kendaraan." };
+    return {
+      success: false,
+      error: err.message || "Gagal memperbarui kendaraan.",
+    };
   }
 }
-

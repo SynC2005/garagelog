@@ -50,14 +50,25 @@ import {
   approveOrderAction,
   recordPaymentAction,
 } from "@/server/api/pesanan/pesananApi";
-import { MetodePembayaran, StatusPesanan } from "@prisma/client";
+import { MetodePembayaran, PeranUser, StatusPesanan } from "@prisma/client";
+import type { FeatureCode } from "@/lib/rbac";
 
 interface DetailPesananWrapperProps {
   order: any;
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canManageOrder?: boolean;
+  canViewNota?: boolean;
+  canManagePayment?: boolean;
 }
 
 export function DetailPesananWrapper({
   order: initialOrder,
+  activeStaff,
+  allowedFeatures,
+  canManageOrder = true,
+  canViewNota = true,
+  canManagePayment = true,
 }: DetailPesananWrapperProps) {
   const [order, setOrder] = React.useState<any>(initialOrder);
   const [copied, setCopied] = React.useState(false);
@@ -162,7 +173,7 @@ export function DetailPesananWrapper({
   };
 
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header Halaman */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
@@ -209,14 +220,16 @@ export function DetailPesananWrapper({
             <span>{copied ? "Tautan Disalin!" : "Salin tautan pelacakan"}</span>
           </Button>
 
-          <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/pesanan/${order.kode_pesanan}/nota`}>
-              <Printer className="size-3.5" aria-hidden="true" />
-              <span>Cetak nota</span>
-            </Link>
-          </Button>
+          {canViewNota && (
+            <Button asChild variant="outline" size="sm" className="text-xs">
+              <Link href={`/pesanan/${order.kode_pesanan}/nota`}>
+                <Printer className="size-3.5" aria-hidden="true" />
+                <span>Cetak nota</span>
+              </Link>
+            </Button>
+          )}
 
-          {order.status === StatusPesanan.Menunggu_Persetujuan && (
+          {canManageOrder && order.status === StatusPesanan.Menunggu_Persetujuan && (
             <Button
               size="sm"
               variant="secondary"
@@ -376,16 +389,18 @@ export function DetailPesananWrapper({
               <CardTitle className="text-base font-semibold">
                 Pembayaran
               </CardTitle>
-              <Button
-                size="xs"
-                onClick={() => {
-                  setPaymentFormError(null);
-                  setShowPaymentModal(true);
-                }}
-              >
-                <CreditCard className="size-3.5" aria-hidden="true" />
-                <span>Catat Pembayaran</span>
-              </Button>
+              {canManagePayment && (
+                <Button
+                  size="xs"
+                  onClick={() => {
+                    setPaymentFormError(null);
+                    setShowPaymentModal(true);
+                  }}
+                >
+                  <CreditCard className="size-3.5" aria-hidden="true" />
+                  <span>Catat Pembayaran</span>
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-5 space-y-3 text-xs">
               <div className="space-y-1.5">

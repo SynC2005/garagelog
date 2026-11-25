@@ -1,6 +1,7 @@
 "use server";
 
 import { getSalesReport } from "@/server/services/laporan/laporanService";
+import { requireActionPermission } from "@/server/services/auth/rbacService";
 
 export type ApiResponse<T> = {
   success: boolean;
@@ -13,8 +14,13 @@ export async function getFilteredReportAction(
   endDateStr?: string
 ): Promise<ApiResponse<any>> {
   try {
-    const startDate = startDateStr ? new Date(`${startDateStr}T00:00:00.000Z`) : undefined;
-    const endDate = endDateStr ? new Date(`${endDateStr}T23:59:59.999Z`) : undefined;
+    await requireActionPermission("laporan", "akses");
+    const startDate = startDateStr
+      ? new Date(`${startDateStr}T00:00:00.000Z`)
+      : undefined;
+    const endDate = endDateStr
+      ? new Date(`${endDateStr}T23:59:59.999Z`)
+      : undefined;
 
     const data = await getSalesReport(startDate, endDate);
     return { success: true, data };
@@ -22,4 +28,3 @@ export async function getFilteredReportAction(
     return { success: false, error: err.message || "Gagal memuat laporan." };
   }
 }
-

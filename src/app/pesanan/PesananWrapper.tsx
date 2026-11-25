@@ -24,12 +24,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/utils/formatDate";
+import type { FeatureCode } from "@/lib/rbac";
+import type { PeranUser } from "@prisma/client";
 
 interface PesananWrapperProps {
   initialOrders: any[];
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canManage?: boolean;
 }
 
-export function PesananWrapper({ initialOrders }: PesananWrapperProps) {
+export function PesananWrapper({
+  initialOrders,
+  activeStaff,
+  allowedFeatures,
+  canManage = true,
+}: PesananWrapperProps) {
   const [orders, setOrders] = React.useState<any[]>(initialOrders);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("semua");
@@ -89,25 +99,34 @@ export function PesananWrapper({ initialOrders }: PesananWrapperProps) {
   });
 
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Pesanan Modifikasi
-          </h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Pesanan Modifikasi
+            </h1>
+            {!canManage && (
+              <Badge variant="outline" className="text-[11px]">
+                Mode Baca Saja
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Daftar seluruh pesanan modifikasi aktif, riwayat pengerjaan, dan status
             pembayaran.
           </p>
         </div>
 
-        <Button asChild size="sm" className="w-full sm:w-auto">
-          <Link href="/pesanan/buat">
-            <Plus className="size-4" aria-hidden="true" />
-            <span>Buat Pesanan Baru</span>
-          </Link>
-        </Button>
+        {canManage && (
+          <Button asChild size="sm" className="w-full sm:w-auto">
+            <Link href="/pesanan/buat">
+              <Plus className="size-4" aria-hidden="true" />
+              <span>Buat Pesanan Baru</span>
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Filter Bar */}

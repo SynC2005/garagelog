@@ -1,7 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Plus, ArrowUp, ArrowDown, CheckCircle2, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  ArrowUp,
+  ArrowDown,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+  RotateCcw,
+  Save,
+  Lock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Button } from "@/components/ui/button";
@@ -10,6 +21,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -43,8 +55,16 @@ import {
   updateStageTemplateAction,
   toggleStagePhotoRequirementAction,
   reorderStageTemplateAction,
+  updateRolePermissionsAction,
+  resetRolePermissionsAction,
 } from "@/server/api/pengaturan/pengaturanApi";
 import { PeranUser } from "@prisma/client";
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  RBAC_FEATURES,
+  type FeatureCode,
+  type RolePermissionsMap,
+} from "@/lib/rbac";
 
 interface StaffItem {
   id: number;
@@ -61,19 +81,97 @@ interface StageItem {
   wajib_foto: boolean;
 }
 
+interface RolePermissionRecord {
+  id: number;
+  peran: PeranUser;
+  fitur_kode: string;
+  nama_fitur: string;
+  rute: string;
+  dapat_akses: boolean;
+  dapat_kelola: boolean;
+}
+
 interface PengaturanWrapperProps {
   initialStaffList: StaffItem[];
   initialStagesList: StageItem[];
+  initialPermissionsList: RolePermissionRecord[];
+  activeStaff?: {
+    nama: string;
+    peran: PeranUser;
+  };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canManage?: boolean;
 }
+
+type MatrixState = Record<PeranUser, RolePermissionsMap>;
+
+function buildMatrixFromList(list: RolePermissionRecord[]): MatrixState {
+  const matrix: MatrixState = {
+    Admin: structuredClone(DEFAULT_ROLE_PERMISSIONS.Admin),
+    Montir: structuredClone(DEFAULT_ROLE_PERMISSIONS.Montir),
+    Pemilik: structuredClone(DEFAULT_ROLE_PERMISSIONS.Pemilik),
+  };
+  for (const row of list) {
+    const code = row.fitur_kode as FeatureCode;
+    if (matrix[row.peran] && code in matrix[row.peran]) {
+      matrix[row.peran][code] = {
+        dapat_akses: row.dapat_akses,
+        dapat_kelola: row.dapat_kelola,
+      };
+    }
+  }
+  matrix.Admin.pengaturan = { dapat_akses: true, dapat_kelola: true };
+  return matrix;
+}
+
+const ROLE_OPTIONS: {
+  peran: PeranUser;
+  label: string;
+  deskripsi: string;
+}[] = [
+  {
+    peran: PeranUser.Montir,
+    label: "Montir",
+    deskripsi:
+      "Fokus pengerjaan modifikasi motor di lapangan (Tugas Pengerjaan, upload foto progres, dan lihat pesanan).",
+  },
+  {
+    peran: PeranUser.Admin,
+    label: "Admin / Kasir",
+    deskripsi:
+      "Operasional harian bengkel: kelola pelanggan, pesanan, pembayaran, stok suku cadang, dan pengaturan sistem.",
+  },
+  {
+    peran: PeranUser.Pemilik,
+    label: "Pemilik Usaha",
+    deskripsi:
+      "Pemantauan bisnis, analitik omzet & durasi pengerjaan, serta pemantauan data master secara baca-saja.",
+  },
+];
 
 export function PengaturanWrapper({
   initialStaffList,
   initialStagesList,
+  initialPermissionsList,
+  activeStaff,
+  allowedFeatures,
+  canManage = true,
 }: PengaturanWrapperProps) {
+  const router = useRouter();
   const [staffList, setStaffList] =
     React.useState<StaffItem[]>(initialStaffList);
   const [stagesList, setStagesList] =
     React.useState<StageItem[]>(initialStagesList);
+  const [permissionMatrix, setPermissionMatrix] = React.useState<MatrixState>(
+    () => buildMatrixFromList(initialPermissionsList)
+  );
+  const [selectedRole, setSelectedRole] = React.useState<PeranUser>(
+    PeranUser.Montir
+  );
+  const [hasUnsavedPermissions, setHasUnsavedPermissions] =
+    React.useState(false);
+  const [isSavingPermissions, setIsSavingPermissions] = React.useState(false);
+
   const [feedback, setFeedback] = React.useState<{
     type: "success" | "error";
     message: string;
@@ -86,6 +184,11 @@ export function PengaturanWrapper({
   React.useEffect(() => {
     setStagesList(initialStagesList);
   }, [initialStagesList]);
+
+  React.useEffect(() => {
+    setPermissionMatrix(buildMatrixFromList(initialPermissionsList));
+    setHasUnsavedPermissions(false);
+  }, [initialPermissionsList]);
 
   const showNotification = (type: "success" | "error", message: string) => {
     setFeedback({ type, message });
@@ -332,16 +435,115 @@ export function PengaturanWrapper({
     }
   };
 
+  // RBAC Permission Handlers
+  const handleTogglePermission = (
+    featureCode: FeatureCode,
+    field: "dapat_akses" | "dapat_kelola",
+    nextVal: boolean
+  ) => {
+    if (selectedRole === PeranUser.Admin && featureCode === "pengaturan") {
+      return;
+    }
+
+    const meta = RBAC_FEATURES.find((f) => f.kode === featureCode);
+
+    setPermissionMatrix((prev) => {
+      const rolePerms = { ...prev[selectedRole] };
+      const current = { ...rolePerms[featureCode] };
+
+      if (field === "dapat_akses") {
+        current.dapat_akses = nextVal;
+        if (!nextVal) {
+          current.dapat_kelola = false;
+        } else if (meta && !meta.supportsManage) {
+          current.dapat_kelola = true;
+        }
+      } else {
+        current.dapat_kelola = nextVal;
+        if (nextVal) {
+          current.dapat_akses = true;
+        }
+      }
+
+      rolePerms[featureCode] = current;
+      return { ...prev, [selectedRole]: rolePerms };
+    });
+
+    setHasUnsavedPermissions(true);
+  };
+
+  const handleSavePermissions = async () => {
+    setIsSavingPermissions(true);
+    const currentRoleMatrix = permissionMatrix[selectedRole];
+    const updates = RBAC_FEATURES.map((f) => ({
+      fitur_kode: f.kode,
+      dapat_akses: currentRoleMatrix[f.kode].dapat_akses,
+      dapat_kelola: currentRoleMatrix[f.kode].dapat_kelola,
+    }));
+
+    const res = await updateRolePermissionsAction(selectedRole, updates);
+    setIsSavingPermissions(false);
+
+    if (res.success) {
+      setHasUnsavedPermissions(false);
+      showNotification(
+        "success",
+        `Konfigurasi hak akses peran ${selectedRole} berhasil disimpan.`
+      );
+      router.refresh();
+    } else {
+      showNotification(
+        "error",
+        res.error || "Gagal menyimpan konfigurasi hak akses."
+      );
+    }
+  };
+
+  const handleResetRolePermissions = async () => {
+    setIsSavingPermissions(true);
+    const res = await resetRolePermissionsAction(selectedRole);
+    setIsSavingPermissions(false);
+
+    if (res.success) {
+      setPermissionMatrix((prev) => ({
+        ...prev,
+        [selectedRole]: structuredClone(DEFAULT_ROLE_PERMISSIONS[selectedRole]),
+      }));
+      setHasUnsavedPermissions(false);
+      showNotification(
+        "success",
+        `Hak akses peran ${selectedRole} dikembalikan ke pengaturan bawaan.`
+      );
+      router.refresh();
+    } else {
+      showNotification(
+        "error",
+        res.error || "Gagal mereset hak akses ke default."
+      );
+    }
+  };
+
+  const selectedRoleInfo = ROLE_OPTIONS.find((r) => r.peran === selectedRole)!;
+  const activeRoleRules = permissionMatrix[selectedRole];
+  const accessCount = RBAC_FEATURES.filter(
+    (f) => activeRoleRules[f.kode].dapat_akses
+  ).length;
+  const manageCount = RBAC_FEATURES.filter(
+    (f) =>
+      activeRoleRules[f.kode].dapat_akses &&
+      activeRoleRules[f.kode].dapat_kelola
+  ).length;
+
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           Pengaturan
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Manajemen hak akses akun staf bengkel dan konfigurasi template tahapan
-          pengerjaan modifikasi.
+          Manajemen akun staf bengkel, konfigurasi template tahapan, dan matriks
+          hak akses tiap peran.
         </p>
       </div>
 
@@ -374,8 +576,13 @@ export function PengaturanWrapper({
           <TabsTrigger value="tahapan" className="text-xs sm:text-sm">
             Template Tahapan
           </TabsTrigger>
+          <TabsTrigger value="hak-akses" className="text-xs sm:text-sm gap-1.5">
+            <ShieldCheck className="size-3.5" aria-hidden="true" />
+            <span>Konfigurasi Hak Akses</span>
+          </TabsTrigger>
         </TabsList>
 
+        {/* Tab 1: Akun Staf */}
         <TabsContent value="staf">
           <Card className="py-0 gap-0 overflow-hidden">
             <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border">
@@ -384,13 +591,15 @@ export function PengaturanWrapper({
                   Akun Staf Bengkel
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Kelola hak akses untuk Admin/Kasir, Montir, dan Pemilik Usaha.
+                  Kelola akun login untuk Admin/Kasir, Montir, dan Pemilik Usaha.
                 </p>
               </div>
-              <Button size="xs" onClick={() => setShowAddStaffModal(true)}>
-                <Plus className="size-3.5" aria-hidden="true" />
-                <span>Tambah Staf</span>
-              </Button>
+              {canManage && (
+                <Button size="xs" onClick={() => setShowAddStaffModal(true)}>
+                  <Plus className="size-3.5" aria-hidden="true" />
+                  <span>Tambah Staf</span>
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <Table className="text-xs">
@@ -400,7 +609,9 @@ export function PengaturanWrapper({
                     <TableHead className="px-4">Email</TableHead>
                     <TableHead className="px-4">Peran</TableHead>
                     <TableHead className="px-4 text-center">Aktif</TableHead>
-                    <TableHead className="px-4 text-center">Aksi</TableHead>
+                    {canManage && (
+                      <TableHead className="px-4 text-center">Aksi</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -430,6 +641,7 @@ export function PengaturanWrapper({
                         <div className="flex justify-center">
                           <Checkbox
                             checked={staf.aktif}
+                            disabled={!canManage}
                             aria-label={`Aktifkan akun ${staf.nama}`}
                             onCheckedChange={() =>
                               handleToggleStaffActive(staf.id, staf.aktif)
@@ -437,15 +649,17 @@ export function PengaturanWrapper({
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-center">
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => handleOpenEditStaff(staf)}
-                        >
-                          Ubah
-                        </Button>
-                      </TableCell>
+                      {canManage && (
+                        <TableCell className="px-4 py-3 text-center">
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            onClick={() => handleOpenEditStaff(staf)}
+                          >
+                            Ubah
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -454,6 +668,7 @@ export function PengaturanWrapper({
           </Card>
         </TabsContent>
 
+        {/* Tab 2: Template Tahapan */}
         <TabsContent value="tahapan">
           <Card className="py-0 gap-0 overflow-hidden">
             <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border">
@@ -466,10 +681,12 @@ export function PengaturanWrapper({
                   modifikasi baru.
                 </p>
               </div>
-              <Button size="xs" onClick={() => setShowAddStageModal(true)}>
-                <Plus className="size-3.5" aria-hidden="true" />
-                <span>Tambah Tahap</span>
-              </Button>
+              {canManage && (
+                <Button size="xs" onClick={() => setShowAddStageModal(true)}>
+                  <Plus className="size-3.5" aria-hidden="true" />
+                  <span>Tambah Tahap</span>
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <Table className="text-xs">
@@ -482,9 +699,11 @@ export function PengaturanWrapper({
                     <TableHead className="px-4 text-center">
                       Wajib Foto
                     </TableHead>
-                    <TableHead className="px-4 text-center">
-                      Aksi &amp; Urutan
-                    </TableHead>
+                    {canManage && (
+                      <TableHead className="px-4 text-center">
+                        Aksi &amp; Urutan
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -500,6 +719,7 @@ export function PengaturanWrapper({
                         <label className="inline-flex items-center gap-2 cursor-pointer">
                           <Checkbox
                             checked={stg.wajib_foto}
+                            disabled={!canManage}
                             aria-label={`Wajib foto untuk tahap ${stg.nama}`}
                             onCheckedChange={() =>
                               handleToggleStagePhoto(stg.id, stg.wajib_foto)
@@ -510,37 +730,39 @@ export function PengaturanWrapper({
                           </span>
                         </label>
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-center">
-                        <div className="inline-flex items-center gap-1.5">
-                          <Button
-                            variant="outline"
-                            size="xs"
-                            onClick={() => handleOpenEditStage(stg)}
-                          >
-                            Ubah
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon-xs"
-                            disabled={idx === 0}
-                            onClick={() => handleMoveStage(stg.id, "up")}
-                            aria-label={`Naikkan urutan ${stg.nama}`}
-                            title="Naikkan urutan"
-                          >
-                            <ArrowUp className="size-3" aria-hidden="true" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon-xs"
-                            disabled={idx === stagesList.length - 1}
-                            onClick={() => handleMoveStage(stg.id, "down")}
-                            aria-label={`Turunkan urutan ${stg.nama}`}
-                            title="Turunkan urutan"
-                          >
-                            <ArrowDown className="size-3" aria-hidden="true" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {canManage && (
+                        <TableCell className="px-4 py-3 text-center">
+                          <div className="inline-flex items-center gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              onClick={() => handleOpenEditStage(stg)}
+                            >
+                              Ubah
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon-xs"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveStage(stg.id, "up")}
+                              aria-label={`Naikkan urutan ${stg.nama}`}
+                              title="Naikkan urutan"
+                            >
+                              <ArrowUp className="size-3" aria-hidden="true" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon-xs"
+                              disabled={idx === stagesList.length - 1}
+                              onClick={() => handleMoveStage(stg.id, "down")}
+                              aria-label={`Turunkan urutan ${stg.nama}`}
+                              title="Turunkan urutan"
+                            >
+                              <ArrowDown className="size-3" aria-hidden="true" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -548,9 +770,251 @@ export function PengaturanWrapper({
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Tab 3: Konfigurasi Hak Akses */}
+        <TabsContent value="hak-akses" className="space-y-4">
+          <Card className="py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 border-b border-border space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <ShieldCheck
+                      className="size-4 text-primary"
+                      aria-hidden="true"
+                    />
+                    <span>Matriks Hak Akses Peran (RBAC)</span>
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Atur menu apa saja yang dapat dibuka dan dikelola oleh
+                    masing-masing peran staf (berlaku di UI dan validasi server).
+                  </p>
+                </div>
+
+                {hasUnsavedPermissions && (
+                  <Badge variant="pending" className="text-[11px]">
+                    Perubahan belum disimpan
+                  </Badge>
+                )}
+              </div>
+
+              {/* Pemilih Peran */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {ROLE_OPTIONS.map((opt) => {
+                  const isActive = selectedRole === opt.peran;
+                  const roleRules = permissionMatrix[opt.peran];
+                  const activeMenus = RBAC_FEATURES.filter(
+                    (f) => roleRules[f.kode].dapat_akses
+                  ).length;
+
+                  return (
+                    <button
+                      key={opt.peran}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRole(opt.peran);
+                        setHasUnsavedPermissions(false);
+                        setPermissionMatrix(
+                          buildMatrixFromList(initialPermissionsList)
+                        );
+                      }}
+                      className={`text-left p-3 rounded-lg border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        isActive
+                          ? "border-primary bg-primary/5 dark:bg-primary/10"
+                          : "border-border bg-card hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`text-xs font-bold ${
+                            isActive ? "text-primary" : "text-foreground"
+                          }`}
+                        >
+                          {opt.label}
+                        </span>
+                        <Badge
+                          variant={
+                            opt.peran === PeranUser.Admin
+                              ? "info"
+                              : opt.peran === PeranUser.Montir
+                              ? "progress"
+                              : "ready"
+                          }
+                          className="text-[10px] tabular-nums"
+                        >
+                          {activeMenus}/{RBAC_FEATURES.length} Modul
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+                        {opt.deskripsi}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {/* Info ringkas peran aktif */}
+              <div className="px-4 sm:px-5 py-3 bg-muted/40 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="text-muted-foreground">
+                  Mengatur izin untuk peran{" "}
+                  <strong className="text-foreground">
+                    {selectedRoleInfo.label}
+                  </strong>
+                  : <span className="tabular-nums font-medium">{accessCount}</span>{" "}
+                  modul dapat diakses,{" "}
+                  <span className="tabular-nums font-medium">{manageCount}</span>{" "}
+                  modul akses penuh (kelola).
+                </div>
+                {selectedRole === PeranUser.Admin && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Lock className="size-3" aria-hidden="true" />
+                    Pengaturan sistem terkunci aktif untuk Admin
+                  </span>
+                )}
+              </div>
+
+              <Table className="text-xs">
+                <TableHeader className="bg-muted/60">
+                  <TableRow>
+                    <TableHead className="px-4">Fitur / Modul</TableHead>
+                    <TableHead className="px-4 text-center w-36">
+                      Akses Menu (Lihat)
+                    </TableHead>
+                    <TableHead className="px-4 text-center w-40">
+                      Kelola Data (CRUD)
+                    </TableHead>
+                    <TableHead className="px-4 text-center w-36">
+                      Status Izin
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {RBAC_FEATURES.map((feature) => {
+                    const rule = activeRoleRules[feature.kode];
+                    const isLockedAdminSettings =
+                      selectedRole === PeranUser.Admin &&
+                      feature.kode === "pengaturan";
+
+                    const statusBadge = !rule.dapat_akses ? (
+                      <Badge variant="cancelled" className="text-[10px]">
+                        Diblokir
+                      </Badge>
+                    ) : rule.dapat_kelola || !feature.supportsManage ? (
+                      <Badge variant="ready" className="text-[10px]">
+                        Akses Penuh
+                      </Badge>
+                    ) : (
+                      <Badge variant="pending" className="text-[10px]">
+                        Lihat Saja
+                      </Badge>
+                    );
+
+                    return (
+                      <TableRow key={feature.kode}>
+                        <TableCell className="px-4 py-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-foreground">
+                              {feature.nama}
+                            </span>
+                            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              {feature.rute}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {feature.deskripsi}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="px-4 py-3 text-center">
+                          <div className="flex justify-center">
+                            <Switch
+                              checked={rule.dapat_akses}
+                              disabled={!canManage || isLockedAdminSettings}
+                              aria-label={`Akses menu ${feature.nama} untuk ${selectedRole}`}
+                              onCheckedChange={(checked) =>
+                                handleTogglePermission(
+                                  feature.kode,
+                                  "dapat_akses",
+                                  checked
+                                )
+                              }
+                            />
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="px-4 py-3 text-center">
+                          {feature.supportsManage ? (
+                            <div className="flex justify-center">
+                              <Switch
+                                checked={rule.dapat_akses && rule.dapat_kelola}
+                                disabled={
+                                  !canManage ||
+                                  !rule.dapat_akses ||
+                                  isLockedAdminSettings
+                                }
+                                aria-label={`Kelola data ${feature.nama} untuk ${selectedRole}`}
+                                onCheckedChange={(checked) =>
+                                  handleTogglePermission(
+                                    feature.kode,
+                                    "dapat_kelola",
+                                    checked
+                                  )
+                                }
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">
+                              &mdash;
+                            </span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-3 text-center">
+                          {statusBadge}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+
+              {canManage && (
+                <div className="p-4 sm:p-5 border-t border-border bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isSavingPermissions}
+                    onClick={handleResetRolePermissions}
+                    className="w-full sm:w-auto text-xs"
+                  >
+                    <RotateCcw className="size-3.5" aria-hidden="true" />
+                    <span>Reset Default {selectedRoleInfo.label}</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isSavingPermissions}
+                    onClick={handleSavePermissions}
+                    className="w-full sm:w-auto text-xs font-semibold"
+                  >
+                    <Save className="size-3.5" aria-hidden="true" />
+                    <span>
+                      {isSavingPermissions
+                        ? "Menyimpan..."
+                        : `Simpan Hak Akses ${selectedRoleInfo.label}`}
+                    </span>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
-      {/* Modal Tambah Staf Baru (shadcn Dialog) */}
+      {/* Modal Tambah Staf Baru */}
       <Dialog open={showAddStaffModal} onOpenChange={setShowAddStaffModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -639,7 +1103,7 @@ export function PengaturanWrapper({
         </DialogContent>
       </Dialog>
 
-      {/* Modal Ubah Staf (shadcn Dialog) */}
+      {/* Modal Ubah Staf */}
       <Dialog
         open={Boolean(editStaffItem)}
         onOpenChange={(open) => {
@@ -735,7 +1199,7 @@ export function PengaturanWrapper({
         </DialogContent>
       </Dialog>
 
-      {/* Modal Tambah Tahapan Baru (shadcn Dialog) */}
+      {/* Modal Tambah Tahapan Baru */}
       <Dialog open={showAddStageModal} onOpenChange={setShowAddStageModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -790,7 +1254,7 @@ export function PengaturanWrapper({
         </DialogContent>
       </Dialog>
 
-      {/* Modal Ubah Tahapan (shadcn Dialog) */}
+      {/* Modal Ubah Tahapan */}
       <Dialog
         open={Boolean(editStageItem)}
         onOpenChange={(open) => {

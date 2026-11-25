@@ -31,13 +31,23 @@ import {
   createServiceAction,
   updateServiceAction,
 } from "@/server/api/jasa/jasaApi";
-import type { Jasa } from "@prisma/client";
+import type { Jasa, PeranUser } from "@prisma/client";
+import type { FeatureCode } from "@/lib/rbac";
+import { Badge } from "@/components/ui/badge";
 
 interface JasaWrapperProps {
   initialServices: Jasa[];
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canManage?: boolean;
 }
 
-export function JasaWrapper({ initialServices }: JasaWrapperProps) {
+export function JasaWrapper({
+  initialServices,
+  activeStaff,
+  allowedFeatures,
+  canManage = true,
+}: JasaWrapperProps) {
   const [services, setServices] = React.useState<Jasa[]>(initialServices);
   const [search, setSearch] = React.useState("");
 
@@ -148,26 +158,35 @@ export function JasaWrapper({ initialServices }: JasaWrapperProps) {
   };
 
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Katalog Jasa
-          </h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Katalog Jasa
+            </h1>
+            {!canManage && (
+              <Badge variant="outline" className="text-[11px]">
+                Mode Baca Saja
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Katalog paket modifikasi dan tarif harga dasar jasa pengerjaan bengkel.
           </p>
         </div>
 
-        <Button
-          size="sm"
-          className="w-full sm:w-auto"
-          onClick={handleOpenCreate}
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          <span>Jasa Baru</span>
-        </Button>
+        {canManage && (
+          <Button
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={handleOpenCreate}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            <span>Jasa Baru</span>
+          </Button>
+        )}
       </div>
 
       {feedback && (
@@ -219,14 +238,16 @@ export function JasaWrapper({ initialServices }: JasaWrapperProps) {
                 <TableHead className="px-4">Nama Jasa</TableHead>
                 <TableHead className="px-4">Deskripsi Singkat</TableHead>
                 <TableHead className="px-4 text-right">Harga Dasar</TableHead>
-                <TableHead className="px-4 text-center w-24">Aksi</TableHead>
+                {canManage && (
+                  <TableHead className="px-4 text-center w-24">Aksi</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredServices.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={canManage ? 4 : 3}
                     className="py-8 text-center text-muted-foreground"
                   >
                     Tidak ada jasa modifikasi ditemukan.
@@ -244,16 +265,18 @@ export function JasaWrapper({ initialServices }: JasaWrapperProps) {
                     <TableCell className="px-4 py-3 text-right font-semibold tabular-nums text-primary">
                       {formatCurrency(Number(s.harga_dasar))}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-center">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="xs"
-                        onClick={() => handleOpenEdit(s)}
-                      >
-                        Ubah
-                      </Button>
-                    </TableCell>
+                    {canManage && (
+                      <TableCell className="px-4 py-3 text-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleOpenEdit(s)}
+                        >
+                          Ubah
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

@@ -15,6 +15,8 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatDateTime } from "@/utils/formatDate";
+import type { FeatureCode } from "@/lib/rbac";
+import type { PeranUser } from "@prisma/client";
 
 interface DashboardStatsData {
   activeOrders: number;
@@ -33,9 +35,17 @@ interface DashboardStatsData {
 
 interface DashboardWrapperProps {
   initialStats: DashboardStatsData;
+  activeStaff?: { nama: string; peran: PeranUser };
+  allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
+  canCreateOrder?: boolean;
 }
 
-export function DashboardWrapper({ initialStats }: DashboardWrapperProps) {
+export function DashboardWrapper({
+  initialStats,
+  activeStaff,
+  allowedFeatures,
+  canCreateOrder = true,
+}: DashboardWrapperProps) {
   const stats = [
     {
       label: "Pesanan aktif",
@@ -72,7 +82,7 @@ export function DashboardWrapper({ initialStats }: DashboardWrapperProps) {
   ];
 
   return (
-    <StaffLayout>
+    <StaffLayout activeStaff={activeStaff} allowedFeatures={allowedFeatures}>
       {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -84,12 +94,14 @@ export function DashboardWrapper({ initialStats }: DashboardWrapperProps) {
           </p>
         </div>
 
-        <Button asChild size="sm" className="w-full sm:w-auto">
-          <Link href="/pesanan/buat">
-            <Plus className="size-4" aria-hidden="true" />
-            <span>Buat Pesanan Baru</span>
-          </Link>
-        </Button>
+        {canCreateOrder && (
+          <Button asChild size="sm" className="w-full sm:w-auto">
+            <Link href="/pesanan/buat">
+              <Plus className="size-4" aria-hidden="true" />
+              <span>Buat Pesanan Baru</span>
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* 4 Kartu KPI */}
