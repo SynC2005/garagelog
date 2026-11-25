@@ -4,16 +4,20 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient() {
+  return new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-} else {
-  // Selalu cache instance prisma di serverless container agar tidak leak koneksi
-  globalForPrisma.prisma = prisma;
 }
 
+const existingPrisma = globalForPrisma.prisma;
+const isStaleDevClient =
+  process.env.NODE_ENV !== "production" &&
+  existingPrisma !== undefined &&
+  (!("hakAksesPeran" in existingPrisma) || !("rateLimitLogin" in existingPrisma));
+
+export const prisma =
+  !existingPrisma || isStaleDevClient ? createPrismaClient() : existingPrisma;
+
+// Selalu cache instance prisma agar tidak leak koneksi saat HMR dev maupun di serverless container
+globalForPrisma.prisma = prisma;

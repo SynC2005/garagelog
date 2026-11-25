@@ -1,11 +1,22 @@
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 
 export const MAX_LOGIN_ATTEMPTS = 3;
 export const LOGIN_LOCKOUT_SECONDS = 60;
 
-const LOGIN_LOCKOUT_MS = LOGIN_LOCKOUT_SECONDS * 1000;
-const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const ATTEMPT_WINDOW_SECONDS = 15 * 60;
+
+interface ActiveLockRow {
+  remaining_seconds: number;
+}
+
+interface RateLimitStateRow {
+  kunci: string;
+  percobaan: number;
+  is_expired_lockout: boolean;
+  is_stale_window: boolean;
+}
 
 export class LoginAuthError extends Error {
   retryAfterSeconds?: number;
@@ -33,38 +44,27 @@ function buildRateLimitKeys(normalizedEmail: string, clientIp?: string): string[
   return keys;
 }
 
-async function getActiveLockoutSeconds(
-  keys: string[],
-  now: Date
-): Promise<number> {
+async function getActiveLockoutSeconds(keys: string[]): Promise<number> {
   if (keys.length === 0) return 0;
 
-  const activeLocks = await prisma.rateLimitLogin.findMany({
-    where: {
-      kunci: { in: keys },
-      terkunci_hingga: { gt: now },
-    },
-    select: { terkunci_hingga: true },
-  });
+  // Hitung selisih waktu langsung di PostgreSQL agar konsisten di semua zona waktu & tahan cache Prisma HMR
+  const activeLocks = await prisma.$queryRaw<ActiveLockRow[]>`
+    SELECT CEIL(EXTRACT(EPOCH FROM (terkunci_hingga - NOW())))::int AS remaining_seconds
+    FROM public.rate_limit_login
+    WHERE kunci IN (${Prisma.join(keys)})
+      AND terkunci_hingga > NOW()
+  `;
 
-  let maxLockedUntil: Date | null = null;
+  let maxSeconds = 0;
   for (const row of activeLocks) {
-    if (
-      row.terkunci_hingga &&
-      (!maxLockedUntil || row.terkunci_hingga > maxLockedUntil)
-    ) {
-      maxLockedUntil = row.terkunci_hingga;
-    }
+    const secs = Number(row.remaining_seconds);
+    if (secs > maxSeconds) maxSeconds = secs;
   }
 
-  if (!maxLockedUntil) return 0;
-  return Math.max(
-    1,
-    Math.ceil((maxLockedUntil.getTime() - now.getTime()) / 1000)
-  );
+  return maxSeconds;
 }
 
-async function recordFailedLoginAttempt(keys: string[], now: Date) {
+async function recordFailedLoginAttempt(keys: string[]) {
   if (keys.length === 0) {
     return {
       locked: false,
@@ -74,59 +74,57 @@ async function recordFailedLoginAttempt(keys: string[], now: Date) {
   }
 
   return await prisma.$transaction(async (tx) => {
-    const existingRows = await tx.rateLimitLogin.findMany({
-      where: { kunci: { in: keys } },
-    });
+    const existingRows = await tx.$queryRaw<RateLimitStateRow[]>`
+      SELECT
+        kunci,
+        percobaan,
+        (terkunci_hingga IS NOT NULL AND terkunci_hingga <= NOW()) AS is_expired_lockout,
+        (updated_at < NOW() - (${ATTEMPT_WINDOW_SECONDS}::int * INTERVAL '1 second')) AS is_stale_window
+      FROM public.rate_limit_login
+      WHERE kunci IN (${Prisma.join(keys)})
+      FOR UPDATE
+    `;
     const rowMap = new Map(existingRows.map((row) => [row.kunci, row]));
 
     let maxAttempts = 0;
-    let maxLockedUntil: Date | null = null;
+    let locked = false;
 
     for (const key of keys) {
       const existing = rowMap.get(key);
-      const isExpiredLockout =
-        existing?.terkunci_hingga !== null &&
-        existing?.terkunci_hingga !== undefined &&
-        existing.terkunci_hingga <= now;
-      const isStaleWindow =
-        existing !== undefined &&
-        now.getTime() - existing.updated_at.getTime() > ATTEMPT_WINDOW_MS;
-
       const prevAttempts =
-        !existing || isExpiredLockout || isStaleWindow ? 0 : existing.percobaan;
+        !existing || existing.is_expired_lockout || existing.is_stale_window
+          ? 0
+          : Number(existing.percobaan);
       const nextAttempts = prevAttempts + 1;
-      const lockedUntil =
-        nextAttempts >= MAX_LOGIN_ATTEMPTS
-          ? new Date(now.getTime() + LOGIN_LOCKOUT_MS)
-          : null;
+      const shouldLock = nextAttempts >= MAX_LOGIN_ATTEMPTS;
 
-      await tx.rateLimitLogin.upsert({
-        where: { kunci: key },
-        create: {
-          kunci: key,
-          percobaan: nextAttempts,
-          terkunci_hingga: lockedUntil,
-        },
-        update: {
-          percobaan: nextAttempts,
-          terkunci_hingga: lockedUntil,
-        },
-      });
+      await tx.$executeRaw`
+        INSERT INTO public.rate_limit_login (kunci, percobaan, terkunci_hingga, updated_at)
+        VALUES (
+          ${key},
+          ${nextAttempts}::int,
+          CASE
+            WHEN ${shouldLock}::boolean
+              THEN (NOW() + (${LOGIN_LOCKOUT_SECONDS}::int * INTERVAL '1 second'))::timestamp(3)
+            ELSE NULL::timestamp(3)
+          END,
+          NOW()::timestamp(3)
+        )
+        ON CONFLICT (kunci)
+        DO UPDATE SET
+          percobaan = EXCLUDED.percobaan,
+          terkunci_hingga = EXCLUDED.terkunci_hingga,
+          updated_at = EXCLUDED.updated_at
+      `;
 
       if (nextAttempts > maxAttempts) maxAttempts = nextAttempts;
-      if (lockedUntil && (!maxLockedUntil || lockedUntil > maxLockedUntil)) {
-        maxLockedUntil = lockedUntil;
-      }
+      if (shouldLock) locked = true;
     }
 
-    if (maxLockedUntil) {
-      const retryAfterSeconds = Math.max(
-        1,
-        Math.ceil((maxLockedUntil.getTime() - now.getTime()) / 1000)
-      );
+    if (locked) {
       return {
         locked: true,
-        retryAfterSeconds,
+        retryAfterSeconds: LOGIN_LOCKOUT_SECONDS,
         remainingAttempts: 0,
       };
     }
@@ -141,9 +139,10 @@ async function recordFailedLoginAttempt(keys: string[], now: Date) {
 
 async function clearLoginRateLimit(keys: string[]) {
   if (keys.length === 0) return;
-  await prisma.rateLimitLogin.deleteMany({
-    where: { kunci: { in: keys } },
-  });
+  await prisma.$executeRaw`
+    DELETE FROM public.rate_limit_login
+    WHERE kunci IN (${Prisma.join(keys)})
+  `;
 }
 
 export async function loginStaff(
@@ -153,9 +152,8 @@ export async function loginStaff(
 ) {
   const normalizedEmail = email.toLowerCase().trim();
   const keys = buildRateLimitKeys(normalizedEmail, options?.clientIp);
-  const now = new Date();
 
-  const lockedSeconds = await getActiveLockoutSeconds(keys, now);
+  const lockedSeconds = await getActiveLockoutSeconds(keys);
   if (lockedSeconds > 0) {
     throw new LoginAuthError(
       `Terlalu banyak percobaan masuk yang gagal. Silakan tunggu ${lockedSeconds} detik sebelum mencoba lagi.`,
@@ -168,7 +166,7 @@ export async function loginStaff(
   });
 
   if (!user) {
-    const attempt = await recordFailedLoginAttempt(keys, now);
+    const attempt = await recordFailedLoginAttempt(keys);
     if (attempt.locked) {
       throw new LoginAuthError(
         `Terlalu banyak percobaan masuk yang gagal (${MAX_LOGIN_ATTEMPTS}x). Silakan tunggu ${attempt.retryAfterSeconds} detik sebelum mencoba lagi.`,
@@ -185,7 +183,7 @@ export async function loginStaff(
   }
 
   if (!user.aktif) {
-    const attempt = await recordFailedLoginAttempt(keys, now);
+    const attempt = await recordFailedLoginAttempt(keys);
     if (attempt.locked) {
       throw new LoginAuthError(
         `Terlalu banyak percobaan masuk yang gagal (${MAX_LOGIN_ATTEMPTS}x). Silakan tunggu ${attempt.retryAfterSeconds} detik sebelum mencoba lagi.`,
@@ -203,7 +201,7 @@ export async function loginStaff(
 
   const isMatch = await bcrypt.compare(kataSandi, user.kata_sandi_hash);
   if (!isMatch) {
-    const attempt = await recordFailedLoginAttempt(keys, now);
+    const attempt = await recordFailedLoginAttempt(keys);
     if (attempt.locked) {
       throw new LoginAuthError(
         `Terlalu banyak percobaan masuk yang gagal (${MAX_LOGIN_ATTEMPTS}x). Silakan tunggu ${attempt.retryAfterSeconds} detik sebelum mencoba lagi.`,
