@@ -10,6 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,7 +40,7 @@ interface PelangganWrapperProps {
 }
 
 export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
-  const [customers] = React.useState(initialCustomers);
+  const [customers, setCustomers] = React.useState(initialCustomers);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<number>(
     initialCustomers[0]?.id || 0
   );
@@ -44,6 +52,11 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
     text: string;
   } | null>(null);
 
+  // Floating Window (Dialog) Pelanggan State
+  const [showCustomerDialog, setShowCustomerDialog] = React.useState(false);
+  const [customerModalError, setCustomerModalError] = React.useState<
+    string | null
+  >(null);
   const [isEditingCustomer, setIsEditingCustomer] = React.useState(false);
   const [customerForm, setCustomerForm] = React.useState({
     id: 0,
@@ -51,6 +64,7 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
     telepon: "",
   });
 
+  // Kendaraan Form State
   const [isEditingVehicle, setIsEditingVehicle] = React.useState(false);
   const [vehicleForm, setVehicleForm] = React.useState({
     id: 0,
@@ -70,9 +84,28 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
       c.telepon.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleOpenCreateCustomer = () => {
+    setIsEditingCustomer(false);
+    setCustomerModalError(null);
+    setCustomerForm({ id: 0, nama: "", telepon: "" });
+    setShowCustomerDialog(true);
+  };
+
+  const handleOpenEditCustomer = (c: CustomerList[number]) => {
+    setIsEditingCustomer(true);
+    setCustomerModalError(null);
+    setCustomerForm({ id: c.id, nama: c.nama, telepon: c.telepon });
+    setShowCustomerDialog(true);
+  };
+
   const handleSaveCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerForm.nama.trim() || !customerForm.telepon.trim()) return;
+    setCustomerModalError(null);
+
+    if (!customerForm.nama.trim() || !customerForm.telepon.trim()) {
+      setCustomerModalError("Nama lengkap dan nomor telepon wajib diisi.");
+      return;
+    }
 
     try {
       setIsSubmittingCustomer(true);
@@ -83,42 +116,52 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           nama: customerForm.nama.trim(),
           telepon: customerForm.telepon.trim(),
         });
-        if (!res.success) {
-          setFeedback({
-            type: "error",
-            text: res.error || "Gagal mengubah pelanggan.",
-          });
+        if (!res.success || !res.data) {
+          setCustomerModalError(res.error || "Gagal mengubah pelanggan.");
           return;
         }
-        toast.success("Data pelanggan berhasil diperbarui!");
-        setFeedback({
-          type: "success",
-          text: "Data pelanggan berhasil diperbarui!",
-        });
+        setCustomers((prev) =>
+          prev
+            .map((item) =>
+              item.id === customerForm.id
+                ? { ...item, nama: res.data.nama, telepon: res.data.telepon }
+                : item
+            )
+            .sort((a, b) => a.nama.localeCompare(b.nama))
+        );
+        const msg = `Data pelanggan "${res.data.nama}" berhasil diperbarui!`;
+        toast.success(msg);
+        setFeedback({ type: "success", text: msg });
       } else {
         const res = await createCustomerAction({
           nama: customerForm.nama.trim(),
           telepon: customerForm.telepon.trim(),
         });
-        if (!res.success) {
-          setFeedback({
-            type: "error",
-            text: res.error || "Gagal menambah pelanggan.",
-          });
+        if (!res.success || !res.data) {
+          setCustomerModalError(res.error || "Gagal menambah pelanggan.");
           return;
         }
-        toast.success("Pelanggan baru berhasil ditambahkan!");
-        setFeedback({
-          type: "success",
-          text: "Pelanggan baru berhasil ditambahkan!",
-        });
+        const newCustomer: CustomerList[number] = {
+          ...res.data,
+          kendaraan: [],
+          _count: { pesanan: 0 },
+        };
+        setCustomers((prev) =>
+          [...prev, newCustomer].sort((a, b) => a.nama.localeCompare(b.nama))
+        );
+        setSelectedCustomerId(res.data.id);
+        const msg = `Pelanggan "${res.data.nama}" berhasil ditambahkan!`;
+        toast.success(msg);
+        setFeedback({ type: "success", text: msg });
       }
 
+      setShowCustomerDialog(false);
       setCustomerForm({ id: 0, nama: "", telepon: "" });
       setIsEditingCustomer(false);
-      window.location.reload();
-    } catch (err: any) {
-      setFeedback({ type: "error", text: err.message || "Terjadi kesalahan." });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
+      setCustomerModalError(msg);
     } finally {
       setIsSubmittingCustomer(false);
     }
@@ -148,13 +191,25 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           tahun: Number(vehicleForm.tahun),
           nomorPolisi: vehicleForm.nopol.trim().toUpperCase(),
         });
-        if (!res.success) {
+        if (!res.success || !res.data) {
           setFeedback({
             type: "error",
             text: res.error || "Gagal mengubah kendaraan.",
           });
           return;
         }
+        setCustomers((prev) =>
+          prev.map((cust) =>
+            cust.id === selectedCustomer.id
+              ? {
+                  ...cust,
+                  kendaraan: cust.kendaraan.map((v) =>
+                    v.id === vehicleForm.id ? res.data : v
+                  ),
+                }
+              : cust
+          )
+        );
         toast.success("Data kendaraan berhasil diperbarui!");
         setFeedback({
           type: "success",
@@ -168,13 +223,20 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           tahun: Number(vehicleForm.tahun),
           nomorPolisi: vehicleForm.nopol.trim().toUpperCase(),
         });
-        if (!res.success) {
+        if (!res.success || !res.data) {
           setFeedback({
             type: "error",
             text: res.error || "Gagal menambah kendaraan.",
           });
           return;
         }
+        setCustomers((prev) =>
+          prev.map((cust) =>
+            cust.id === selectedCustomer.id
+              ? { ...cust, kendaraan: [...cust.kendaraan, res.data] }
+              : cust
+          )
+        );
         toast.success("Kendaraan baru berhasil didaftarkan!");
         setFeedback({
           type: "success",
@@ -190,9 +252,10 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
         nopol: "",
       });
       setIsEditingVehicle(false);
-      window.location.reload();
-    } catch (err: any) {
-      setFeedback({ type: "error", text: err.message || "Terjadi kesalahan." });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
+      setFeedback({ type: "error", text: msg });
     } finally {
       setIsSubmittingVehicle(false);
     }
@@ -213,20 +276,14 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
 
       {/* Grid 2 Kolom */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Kolom Kiri: Pelanggan */}
-        <div className="lg:col-span-6 space-y-6">
+        {/* Kolom Kiri: Daftar Pelanggan */}
+        <div className="lg:col-span-6">
           <Card className="py-0 gap-0">
             <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between space-y-0 border-b border-border">
               <CardTitle className="text-base font-semibold">
                 Daftar Pelanggan
               </CardTitle>
-              <Button
-                size="xs"
-                onClick={() => {
-                  setIsEditingCustomer(false);
-                  setCustomerForm({ id: 0, nama: "", telepon: "" });
-                }}
-              >
+              <Button size="xs" onClick={handleOpenCreateCustomer}>
                 <Plus className="size-3.5" aria-hidden="true" />
                 <span>Pelanggan</span>
               </Button>
@@ -315,12 +372,7 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                                 size="xs"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setIsEditingCustomer(true);
-                                  setCustomerForm({
-                                    id: c.id,
-                                    nama: c.nama,
-                                    telepon: c.telepon,
-                                  });
+                                  handleOpenEditCustomer(c);
                                 }}
                               >
                                 Ubah
@@ -333,86 +385,6 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="py-0 gap-0">
-            <CardHeader className="p-4 border-b border-border">
-              <CardTitle className="text-sm font-semibold">
-                {isEditingCustomer
-                  ? "Ubah Pelanggan"
-                  : "Tambah Pelanggan Baru"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <form onSubmit={handleSaveCustomer} className="space-y-3 text-xs">
-                <div className="space-y-1.5">
-                  <Label htmlFor="cust-name" className="text-xs font-semibold">
-                    Nama Lengkap
-                  </Label>
-                  <Input
-                    id="cust-name"
-                    type="text"
-                    required
-                    value={customerForm.nama}
-                    onChange={(e) =>
-                      setCustomerForm({ ...customerForm, nama: e.target.value })
-                    }
-                    placeholder="Contoh: Budi Santoso"
-                    className="h-9 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="cust-phone" className="text-xs font-semibold">
-                    Nomor Telepon
-                  </Label>
-                  <Input
-                    id="cust-phone"
-                    type="text"
-                    required
-                    value={customerForm.telepon}
-                    onChange={(e) =>
-                      setCustomerForm({
-                        ...customerForm,
-                        telepon: e.target.value,
-                      })
-                    }
-                    placeholder="08xxxxxxxxxx"
-                    className="h-9 text-xs font-mono"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={isSubmittingCustomer}
-                    className="text-xs"
-                  >
-                    {isSubmittingCustomer
-                      ? "Menyimpan..."
-                      : isEditingCustomer
-                      ? "Perbarui Pelanggan"
-                      : "Simpan Pelanggan"}
-                  </Button>
-                  {isEditingCustomer && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSubmittingCustomer}
-                      className="text-xs"
-                      onClick={() => {
-                        setIsEditingCustomer(false);
-                        setCustomerForm({ id: 0, nama: "", telepon: "" });
-                      }}
-                    >
-                      Batal
-                    </Button>
-                  )}
-                </div>
-              </form>
             </CardContent>
           </Card>
         </div>
@@ -635,6 +607,90 @@ export function PelangganWrapper({ initialCustomers }: PelangganWrapperProps) {
           </Card>
         </div>
       </div>
+
+      {/* Floating Window: Tambah / Ubah Pelanggan */}
+      <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditingCustomer ? "Ubah Pelanggan" : "Tambah Pelanggan Baru"}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {isEditingCustomer
+                ? "Perbarui nama lengkap dan nomor telepon pelanggan."
+                : "Daftarkan data pelanggan baru untuk ditambahkan ke daftar bengkel."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveCustomer} className="space-y-3.5 text-xs">
+            {customerModalError && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription className="text-xs">
+                  {customerModalError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="cust-name" className="text-xs font-semibold">
+                Nama Lengkap
+              </Label>
+              <Input
+                id="cust-name"
+                type="text"
+                required
+                value={customerForm.nama}
+                onChange={(e) =>
+                  setCustomerForm({ ...customerForm, nama: e.target.value })
+                }
+                placeholder="Contoh: Budi Santoso"
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="cust-phone" className="text-xs font-semibold">
+                Nomor Telepon
+              </Label>
+              <Input
+                id="cust-phone"
+                type="text"
+                required
+                value={customerForm.telepon}
+                onChange={(e) =>
+                  setCustomerForm({ ...customerForm, telepon: e.target.value })
+                }
+                placeholder="08xxxxxxxxxx"
+                className="h-9 text-xs font-mono"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isSubmittingCustomer}
+                onClick={() => setShowCustomerDialog(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmittingCustomer}
+              >
+                {isSubmittingCustomer
+                  ? "Menyimpan..."
+                  : isEditingCustomer
+                  ? "Perbarui Pelanggan"
+                  : "Simpan Pelanggan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </StaffLayout>
   );
 }
