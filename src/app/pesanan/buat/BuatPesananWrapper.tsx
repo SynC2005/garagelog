@@ -78,11 +78,18 @@ interface StageTemplateItem {
   wajib_foto: boolean;
 }
 
+interface MechanicOption {
+  id: number;
+  nama: string;
+  email: string;
+}
+
 interface BuatPesananWrapperProps {
   customers: CustomerWithVehicles[];
   servicesCatalog: ServiceItem[];
   sparePartsCatalog: SparePartItem[];
   stageTemplates: StageTemplateItem[];
+  mechanics?: MechanicOption[];
   activeStaff?: { nama: string; peran: PeranUser };
   allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
 }
@@ -92,6 +99,7 @@ export function BuatPesananWrapper({
   servicesCatalog,
   sparePartsCatalog,
   stageTemplates,
+  mechanics = [],
   activeStaff,
   allowedFeatures,
 }: BuatPesananWrapperProps) {
@@ -139,6 +147,7 @@ export function BuatPesananWrapper({
     defaultFinishDate.toISOString().split("T")[0]
   );
   const [catatan, setCatatan] = React.useState("");
+  const [selectedMontirId, setSelectedMontirId] = React.useState<string>("none");
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -235,6 +244,8 @@ export function BuatPesananWrapper({
       pelangganId: selectedCustomerId,
       kendaraanId: selectedVehicleId,
       dibuatOlehId: 1,
+      montirId:
+        selectedMontirId !== "none" ? Number(selectedMontirId) : null,
       perkiraanSelesai: perkiraanSelesai,
       catatan: catatan.trim(),
       jasaIds: selectedServices,
@@ -561,6 +572,28 @@ export function BuatPesananWrapper({
               </div>
 
               <div className="space-y-1.5 pt-2">
+                <Label htmlFor="order-mechanic" className="text-xs font-semibold">
+                  Tugaskan ke Montir (Opsional)
+                </Label>
+                <Select
+                  value={selectedMontirId}
+                  onValueChange={setSelectedMontirId}
+                >
+                  <SelectTrigger id="order-mechanic" className="w-full h-9 text-xs">
+                    <SelectValue placeholder="Pilih montir pelaksana" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Belum ditugaskan</SelectItem>
+                    {mechanics.map((m) => (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {m.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
                 <Label htmlFor="order-date" className="text-xs font-semibold">
                   Perkiraan Tanggal Selesai
                 </Label>

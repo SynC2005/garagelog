@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   createOrder,
   approveAndStartOrder,
+  assignMechanicToOrder,
   getOrderByCode,
   recordPayment,
 } from "@/server/services/pesanan/pesananService";
@@ -16,6 +17,7 @@ export async function createOrderAction(data: {
   pelangganId: number;
   kendaraanId: number;
   dibuatOlehId: number;
+  montirId?: number | null;
   perkiraanSelesai?: string;
   catatan?: string;
   jasaIds: number[];
@@ -32,10 +34,34 @@ export async function createOrderAction(data: {
         : undefined,
     });
     revalidatePath("/pesanan");
+    revalidatePath("/tugas");
     revalidatePath("/dashboard");
     return { success: true, data: serializeDecimals(order) };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Gagal membuat pesanan." };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Gagal membuat pesanan.";
+    return { success: false, error: message };
+  }
+}
+
+export async function assignOrderMechanicAction(
+  pesananId: number,
+  montirId: number | null
+): Promise<ApiResponse<any>> {
+  try {
+    await requireActionPermission("pesanan", "kelola");
+    const result = await assignMechanicToOrder(pesananId, montirId);
+    revalidatePath("/pesanan");
+    revalidatePath(`/pesanan/${result.kode_pesanan}`);
+    revalidatePath("/tugas");
+    revalidatePath("/dashboard");
+    return { success: true, data: result };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal menugaskan montir ke pesanan.";
+    return { success: false, error: message };
   }
 }
 
@@ -49,11 +75,10 @@ export async function approveOrderAction(
     revalidatePath("/dashboard");
     revalidatePath("/tugas");
     return { success: true, data: serializeDecimals(updated) };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Gagal menyetujui pesanan.",
-    };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Gagal menyetujui pesanan.";
+    return { success: false, error: message };
   }
 }
 
@@ -71,11 +96,10 @@ export async function recordPaymentAction(data: {
     });
     revalidatePath("/pesanan");
     return { success: true, data: serializeDecimals(payment) };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Gagal mencatat pembayaran.",
-    };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Gagal mencatat pembayaran.";
+    return { success: false, error: message };
   }
 }
 
@@ -87,7 +111,9 @@ export async function getOrderByCodeAction(
     const order = await getOrderByCode(kode);
     if (!order) return { success: false, error: "Pesanan tidak ditemukan." };
     return { success: true, data: serializeDecimals(order) };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Gagal mengambil detail pesanan.";
+    return { success: false, error: message };
   }
 }

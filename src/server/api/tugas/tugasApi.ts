@@ -21,15 +21,17 @@ export async function addProgressUpdateAction(data: {
     const update = await addProgressUpdate({
       ...data,
       dibuatOlehId: actor.id,
+      actor: { id: actor.id, peran: actor.peran },
     });
     revalidatePath("/tugas");
     revalidatePath("/dashboard");
     return { success: true, data: update };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Gagal menyimpan pembaruan progres.",
-    };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal menyimpan pembaruan progres.";
+    return { success: false, error: message };
   }
 }
 
@@ -37,16 +39,20 @@ export async function completeTaskStageAction(
   tahapPesananId: number
 ): Promise<ApiResponse<any>> {
   try {
-    await requireActionPermission("tugas", "kelola");
-    const res = await completeTaskStage(tahapPesananId);
+    const actor = await requireActionPermission("tugas", "kelola");
+    const res = await completeTaskStage(tahapPesananId, {
+      id: actor.id,
+      peran: actor.peran,
+    });
     revalidatePath("/tugas");
     revalidatePath("/dashboard");
     revalidatePath("/pesanan");
     return { success: true, data: res };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Gagal menyelesaikan tahap pengerjaan.",
-    };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal menyelesaikan tahap pengerjaan.";
+    return { success: false, error: message };
   }
 }

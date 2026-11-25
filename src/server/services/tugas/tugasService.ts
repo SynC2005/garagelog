@@ -1,13 +1,68 @@
 import { prisma } from "@/server/db";
-import { JenisPembaruan, StatusTahap, StatusPesanan } from "@prisma/client";
+import { attachAssignedMechanics } from "@/server/services/pesanan/pesananService";
+import {
+  JenisPembaruan,
+  PeranUser,
+  Prisma,
+  StatusPesanan,
+  StatusTahap,
+} from "@prisma/client";
+
+async function assertActorCanAccessStage(
+  tx: Prisma.TransactionClient,
+  tahapPesananId: number,
+  actor?: { id: number; peran: PeranUser }
+) {
+  const stage = await tx.tahapPesanan.findUnique({
+    where: { id: tahapPesananId },
+    select: { id: true, pesananId: true },
+  });
+  if (!stage) {
+    throw new Error("Tahap pengerjaan tidak ditemukan.");
+  }
+
+  if (actor?.peran === PeranUser.Montir) {
+    const rows = await tx.$queryRaw<{ montir_id: number | null }[]>`
+      SELECT montir_id
+      FROM public.pesanan
+      WHERE id = ${stage.pesananId}::int
+    `;
+    const assignedMontirId = rows[0]?.montir_id ?? null;
+    if (assignedMontirId !== actor.id) {
+      throw new Error(
+        "Akses ditolak: Anda hanya dapat memperbarui tugas pengerjaan yang ditugaskan kepada Anda."
+      );
+    }
+  }
+}
 
 /**
- * Ambil daftar tugas pesanan yang sedang aktif dikerjakan oleh bengkel
+ * Ambil daftar tugas pesanan aktif.
+ * Jika pengguna berperan Montir, hanya kembalikan pesanan yang ditugaskan kepada montir tersebut.
  */
-export async function getActiveTasks() {
-  return await prisma.pesanan.findMany({
+export async function getActiveTasks(viewer?: {
+  userId: number;
+  peran: PeranUser;
+}) {
+  let allowedOrderIds: number[] | null = null;
+
+  if (viewer?.peran === PeranUser.Montir) {
+    const assignedRows = await prisma.$queryRaw<{ id: number }[]>`
+      SELECT id
+      FROM public.pesanan
+      WHERE status IN ('Dikerjakan', 'Siap_Diambil')
+        AND montir_id = ${viewer.userId}::int
+    `;
+    allowedOrderIds = assignedRows.map((row) => Number(row.id));
+    if (allowedOrderIds.length === 0) {
+      return [];
+    }
+  }
+
+  const rawTasks = await prisma.pesanan.findMany({
     where: {
       status: { in: [StatusPesanan.Dikerjakan, StatusPesanan.Siap_Diambil] },
+      ...(allowedOrderIds ? { id: { in: allowedOrderIds } } : {}),
     },
     orderBy: { updated_at: "desc" },
     include: {
@@ -24,6 +79,8 @@ export async function getActiveTasks() {
       },
     },
   });
+
+  return await attachAssignedMechanics(rawTasks);
 }
 
 /**
@@ -36,8 +93,11 @@ export async function addProgressUpdate(data: {
   catatan: string;
   dibuatOlehId: number;
   fotoUrls?: string[];
+  actor?: { id: number; peran: PeranUser };
 }) {
   return await prisma.$transaction(async (tx) => {
+    await assertActorCanAccessStage(tx, data.tahapPesananId, data.actor);
+
     // 1. Buat record pembaruan progres
     const update = await tx.pembaruanProgres.create({
       data: {
@@ -65,8 +125,13 @@ export async function addProgressUpdate(data: {
 /**
  * Selesaikan tahap pengerjaan pesanan dengan validasi ketat Wajib Foto (FR-18)
  */
-export async function completeTaskStage(tahapPesananId: number) {
+export async function completeTaskStage(
+  tahapPesananId: number,
+  actor?: { id: number; peran: PeranUser }
+) {
   return await prisma.$transaction(async (tx) => {
+    await assertActorCanAccessStage(tx, tahapPesananId, actor);
+
     // 1. Ambil tahap beserta riwayat pembaruan & fotonya
     const stage = await tx.tahapPesanan.findUnique({
       where: { id: tahapPesananId },
@@ -127,4 +192,3 @@ export async function completeTaskStage(tahapPesananId: number) {
     return { success: true };
   });
 }
-

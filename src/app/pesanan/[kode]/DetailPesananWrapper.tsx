@@ -11,6 +11,7 @@ import {
   Check,
   AlertCircle,
   CheckCircle2,
+  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
@@ -48,13 +49,21 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDate } from "@/utils/formatDate";
 import {
   approveOrderAction,
+  assignOrderMechanicAction,
   recordPaymentAction,
 } from "@/server/api/pesanan/pesananApi";
 import { MetodePembayaran, PeranUser, StatusPesanan } from "@prisma/client";
 import type { FeatureCode } from "@/lib/rbac";
 
+interface MechanicOption {
+  id: number;
+  nama: string;
+  email: string;
+}
+
 interface DetailPesananWrapperProps {
   order: any;
+  mechanics?: MechanicOption[];
   activeStaff?: { nama: string; peran: PeranUser };
   allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
   canManageOrder?: boolean;
@@ -64,6 +73,7 @@ interface DetailPesananWrapperProps {
 
 export function DetailPesananWrapper({
   order: initialOrder,
+  mechanics = [],
   activeStaff,
   allowedFeatures,
   canManageOrder = true,
@@ -99,6 +109,7 @@ export function DetailPesananWrapper({
 
   // Approval Loading State
   const [isApproving, setIsApproving] = React.useState(false);
+  const [isAssigningMechanic, setIsAssigningMechanic] = React.useState(false);
 
   const totalEstimasi = Number(order.estimasi_total);
   const totalDibayar = order.pembayaran.reduce(
@@ -134,6 +145,29 @@ export function DetailPesananWrapper({
     } else {
       showNotification("error", res.error || "Gagal menyetujui pesanan.");
       toast.error(res.error || "Gagal menyetujui pesanan.");
+    }
+  };
+
+  const handleAssignMechanic = async (value: string) => {
+    const nextMontirId = value === "none" ? null : Number(value);
+    setIsAssigningMechanic(true);
+    const res = await assignOrderMechanicAction(order.id, nextMontirId);
+    setIsAssigningMechanic(false);
+
+    if (res.success && res.data) {
+      setOrder((prev: any) => ({
+        ...prev,
+        montir_id: res.data.montir_id,
+        montirDitugaskan: res.data.montirDitugaskan,
+      }));
+      const msg = res.data.montirDitugaskan
+        ? `Pesanan ditugaskan kepada montir ${res.data.montirDitugaskan.nama}.`
+        : "Penugasan montir pada pesanan ini dilepas.";
+      showNotification("success", msg);
+      toast.success(msg);
+    } else {
+      showNotification("error", res.error || "Gagal menugaskan montir.");
+      toast.error(res.error || "Gagal menugaskan montir.");
     }
   };
 
@@ -316,6 +350,51 @@ export function DetailPesananWrapper({
                 <p className="font-semibold text-primary mt-0.5">
                   {formatDate(order.perkiraan_selesai)}
                 </p>
+              </div>
+
+              <div className="sm:col-span-2 pt-2 border-t border-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <p className="text-muted-foreground font-medium">
+                      Montir Penanggung Jawab
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Hanya montir yang ditugaskan yang dapat melihat tugas ini di
+                      halaman Tugas Pengerjaan.
+                    </p>
+                  </div>
+                  {canManageOrder ? (
+                    <Select
+                      value={order.montir_id ? String(order.montir_id) : "none"}
+                      disabled={isAssigningMechanic}
+                      onValueChange={handleAssignMechanic}
+                    >
+                      <SelectTrigger
+                        className="w-full sm:w-56 h-9 text-xs"
+                        aria-label="Pilih montir penanggung jawab"
+                      >
+                        <SelectValue placeholder="Pilih montir" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Belum ditugaskan</SelectItem>
+                        {mechanics.map((m) => (
+                          <SelectItem key={m.id} value={String(m.id)}>
+                            {m.nama}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : order.montirDitugaskan ? (
+                    <Badge variant="progress" className="text-xs gap-1.5 w-fit">
+                      <Wrench className="size-3.5" aria-hidden="true" />
+                      <span>{order.montirDitugaskan.nama}</span>
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs w-fit">
+                      Belum ditugaskan
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

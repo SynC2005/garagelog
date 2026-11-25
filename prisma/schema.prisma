@@ -56,6 +56,7 @@ model User {
   updated_at      DateTime  @updatedAt
 
   pesananDibuat     Pesanan[]          @relation("UserPembuatPesanan")
+  pesananDitugaskan Pesanan[]          @relation("UserMontirDitugaskan")
   progresDibuat     PembaruanProgres[] @relation("UserPencatatProgres")
   pembayaranDicatat Pembayaran[]       @relation("UserPencatatPembayaran")
 
@@ -168,6 +169,8 @@ model Pesanan {
   perkiraan_selesai DateTime?     @db.Date
   dibuat_oleh       Int
   userPembuat       User          @relation("UserPembuatPesanan", fields: [dibuat_oleh], references: [id])
+  montir_id         Int?
+  montirDitugaskan  User?         @relation("UserMontirDitugaskan", fields: [montir_id], references: [id], onDelete: SetNull)
   created_at        DateTime      @default(now())
   updated_at        DateTime      @updatedAt
 
@@ -176,6 +179,7 @@ model Pesanan {
   tahapan        TahapPesanan[]
   pembayaran     Pembayaran[]
 
+  @@index([montir_id])
   @@map("pesanan")
 }
 

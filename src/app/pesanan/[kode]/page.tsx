@@ -1,5 +1,8 @@
 import { DetailPesananWrapper } from "./DetailPesananWrapper";
-import { getOrderByCode } from "@/server/services/pesanan/pesananService";
+import {
+  getOrderByCode,
+  getActiveMechanics,
+} from "@/server/services/pesanan/pesananService";
 import { requirePageAccess } from "@/server/services/auth/rbacService";
 import { AccessDeniedView } from "@/components/layout/AccessDeniedView";
 import { serializeDecimals } from "@/utils/serialize";
@@ -39,7 +42,10 @@ export default async function DetailPesananPage({
   }
 
   const { kode } = await params;
-  const order = await getOrderByCode(kode);
+  const [order, mechanics] = await Promise.all([
+    getOrderByCode(kode),
+    access.canManage ? getActiveMechanics() : Promise.resolve([]),
+  ]);
 
   if (!order) {
     return (
@@ -76,6 +82,7 @@ export default async function DetailPesananPage({
   return (
     <DetailPesananWrapper
       order={serializeDecimals(order)}
+      mechanics={mechanics}
       activeStaff={{ nama: access.user.nama, peran: access.user.peran }}
       allowedFeatures={access.allowedFeatures}
       canManageOrder={access.canManage}

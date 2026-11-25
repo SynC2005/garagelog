@@ -158,6 +158,7 @@ async function main() {
       pelangganId: pelanggan1.id,
       kendaraanId: motor1.id,
       dibuat_oleh: admin.id,
+      montir_id: montir.id,
       status: StatusPesanan.Dikerjakan,
       estimasi_total: 7200000,
       disetujui_pada: new Date(),

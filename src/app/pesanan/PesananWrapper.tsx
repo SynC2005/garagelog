@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, Wrench } from "lucide-react";
+import { toast } from "sonner";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,11 +25,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/utils/formatDate";
+import { assignOrderMechanicAction } from "@/server/api/pesanan/pesananApi";
 import type { FeatureCode } from "@/lib/rbac";
 import type { PeranUser } from "@prisma/client";
 
+interface MechanicOption {
+  id: number;
+  nama: string;
+  email: string;
+}
+
 interface PesananWrapperProps {
   initialOrders: any[];
+  mechanics?: MechanicOption[];
   activeStaff?: { nama: string; peran: PeranUser };
   allowedFeatures?: Partial<Record<FeatureCode, boolean>>;
   canManage?: boolean;
@@ -36,6 +45,7 @@ interface PesananWrapperProps {
 
 export function PesananWrapper({
   initialOrders,
+  mechanics = [],
   activeStaff,
   allowedFeatures,
   canManage = true,
@@ -44,10 +54,44 @@ export function PesananWrapper({
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("semua");
   const [paymentFilter, setPaymentFilter] = React.useState("semua");
+  const [assigningOrderId, setAssigningOrderId] = React.useState<number | null>(
+    null
+  );
 
   React.useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
+
+  const handleAssignMechanic = async (
+    pesananId: number,
+    value: string
+  ) => {
+    const nextMontirId = value === "none" ? null : Number(value);
+    setAssigningOrderId(pesananId);
+    const res = await assignOrderMechanicAction(pesananId, nextMontirId);
+    setAssigningOrderId(null);
+
+    if (res.success && res.data) {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === pesananId
+            ? {
+                ...o,
+                montir_id: res.data.montir_id,
+                montirDitugaskan: res.data.montirDitugaskan,
+              }
+            : o
+        )
+      );
+      toast.success(
+        res.data.montirDitugaskan
+          ? `Pesanan ${res.data.kode_pesanan} ditugaskan ke ${res.data.montirDitugaskan.nama}.`
+          : `Penugasan montir pada pesanan ${res.data.kode_pesanan} dilepas.`
+      );
+    } else {
+      toast.error(res.error || "Gagal menugaskan montir.");
+    }
+  };
 
   const formattedOrders = orders.map((o) => {
     const totalPaid = o.pembayaran.reduce(
@@ -78,17 +122,21 @@ export function PesananWrapper({
           .join(", ") || "Kustom Standar",
       status: o.status,
       tahap: o.tahapan?.[0]?.nama || (o.status === "Selesai" ? "Selesai" : "-"),
+      montirId: o.montir_id ? String(o.montir_id) : "none",
+      montirNama: o.montirDitugaskan?.nama || null,
       bayar: bayarStatus,
       perkiraan: formatDate(o.perkiraan_selesai),
     };
   });
 
   const filteredOrders = formattedOrders.filter((ord) => {
+    const q = search.toLowerCase();
     const matchSearch =
-      ord.kode.toLowerCase().includes(search.toLowerCase()) ||
-      ord.pelanggan.toLowerCase().includes(search.toLowerCase()) ||
-      ord.nopol.toLowerCase().includes(search.toLowerCase()) ||
-      ord.kendaraan.toLowerCase().includes(search.toLowerCase());
+      ord.kode.toLowerCase().includes(q) ||
+      ord.pelanggan.toLowerCase().includes(q) ||
+      ord.nopol.toLowerCase().includes(q) ||
+      ord.kendaraan.toLowerCase().includes(q) ||
+      (ord.montirNama && ord.montirNama.toLowerCase().includes(q));
 
     const matchStatus =
       statusFilter === "semua" || ord.status === statusFilter;
@@ -114,7 +162,7 @@ export function PesananWrapper({
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Daftar seluruh pesanan modifikasi aktif, riwayat pengerjaan, dan status
+            Daftar seluruh pesanan modifikasi aktif, penugasan montir, dan status
             pembayaran.
           </p>
         </div>
@@ -143,7 +191,7 @@ export function PesananWrapper({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Cari pesanan"
-                placeholder="Cari kode pesanan, pelanggan, motor, atau plat..."
+                placeholder="Cari kode, pelanggan, motor, plat, atau montir..."
                 className="pl-9 h-9 text-xs"
               />
             </div>
@@ -194,6 +242,7 @@ export function PesananWrapper({
               <TableHead className="px-4">Paket Modifikasi</TableHead>
               <TableHead className="px-4 text-center">Status</TableHead>
               <TableHead className="px-4">Tahap Aktif</TableHead>
+              <TableHead className="px-4 min-w-[165px]">Montir</TableHead>
               <TableHead className="px-4 text-center">Pembayaran</TableHead>
               <TableHead className="px-4 text-right">Perkiraan</TableHead>
               <TableHead className="px-4 text-center">Aksi</TableHead>
@@ -203,7 +252,7 @@ export function PesananWrapper({
             {filteredOrders.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="py-10 text-center text-muted-foreground"
                 >
                   Tidak ada pesanan yang sesuai dengan pencarian atau filter.
@@ -245,6 +294,39 @@ export function PesananWrapper({
                   </TableCell>
                   <TableCell className="px-4 py-3 font-medium text-foreground">
                     {ord.tahap}
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    {canManage ? (
+                      <Select
+                        value={ord.montirId}
+                        disabled={assigningOrderId === ord.id}
+                        onValueChange={(val) => handleAssignMechanic(ord.id, val)}
+                      >
+                        <SelectTrigger
+                          className="h-8 text-[11px] min-w-[150px]"
+                          aria-label={`Tugaskan montir untuk ${ord.kode}`}
+                        >
+                          <SelectValue placeholder="Pilih montir" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Belum ditugaskan</SelectItem>
+                          {mechanics.map((m) => (
+                            <SelectItem key={m.id} value={String(m.id)}>
+                              {m.nama}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : ord.montirNama ? (
+                      <Badge variant="progress" className="text-[10px] gap-1">
+                        <Wrench className="size-3" aria-hidden="true" />
+                        <span>{ord.montirNama}</span>
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">
+                        Belum ditugaskan
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-center">
                     <Badge

@@ -1,5 +1,8 @@
 import { PesananWrapper } from "./PesananWrapper";
-import { getOrders } from "@/server/services/pesanan/pesananService";
+import {
+  getOrders,
+  getActiveMechanics,
+} from "@/server/services/pesanan/pesananService";
 import { requirePageAccess } from "@/server/services/auth/rbacService";
 import { AccessDeniedView } from "@/components/layout/AccessDeniedView";
 import { serializeDecimals } from "@/utils/serialize";
@@ -23,10 +26,15 @@ export default async function PesananPage() {
     );
   }
 
-  const { orders } = await getOrders({ take: 50 });
+  const [{ orders }, mechanics] = await Promise.all([
+    getOrders({ take: 50 }),
+    access.canManage ? getActiveMechanics() : Promise.resolve([]),
+  ]);
+
   return (
     <PesananWrapper
       initialOrders={serializeDecimals(orders)}
+      mechanics={mechanics}
       activeStaff={{ nama: access.user.nama, peran: access.user.peran }}
       allowedFeatures={access.allowedFeatures}
       canManage={access.canManage}
