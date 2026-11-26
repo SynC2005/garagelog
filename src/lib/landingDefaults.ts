@@ -111,8 +111,8 @@ export function formatReviewSummary(review: {
   const firstName = review.nama.trim().split(/\s+/)[0] || review.nama;
   const cleanComment = review.komentar.trim().replace(/\s+/g, " ");
   const snippet =
-    cleanComment.length > 26
-      ? `${cleanComment.slice(0, 26).trimEnd()}...`
+    cleanComment.length > 14
+      ? `${cleanComment.slice(0, 14).trimEnd()}...`
       : cleanComment;
   return `★ ${review.rating.toFixed(1)} · ${firstName} — ${snippet}`;
 }

@@ -260,8 +260,8 @@ export function OwnerAndFeedbackSection({
 
           {reviews.length > 0 ? (
             <>
-              {/* Area Terbuka FolderFloat */}
-              <div className="pt-40 pb-2 flex flex-col items-center justify-end overflow-visible">
+              {/* Area Terbuka FolderFloat (Dibatasi agar tidak keluar wilayahnya) */}
+              <div className="pt-[216px] pb-2 flex flex-col items-center justify-end overflow-hidden w-full">
                 <FolderFloat
                   items={folderItems}
                   label="Ulasan Customer"
@@ -270,9 +270,10 @@ export function OwnerAndFeedbackSection({
                   closeOnSelect={false}
                   physics
                   drift={0.45}
-                  spread={235}
-                  lift={34}
-                  tilt={6}
+                  spread={260}
+                  lift={42}
+                  maxRise={204}
+                  tilt={5}
                   width={216}
                   height={150}
                   folderColor="#9a3412"

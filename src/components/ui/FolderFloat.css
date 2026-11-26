@@ -167,9 +167,9 @@
   top: 0;
   left: 50%;
   margin: 0;
-  padding: 0 14px;
+  padding: 0 12px;
   height: 36px;
-  max-width: min(300px, calc(100vw - 48px));
+  max-width: min(225px, calc(100vw - 48px));
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 18px;

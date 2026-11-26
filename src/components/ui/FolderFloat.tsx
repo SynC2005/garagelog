@@ -49,6 +49,7 @@ export interface FolderFloatProps {
   radius?: number;
   spread?: number;
   lift?: number;
+  maxRise?: number;
   tilt?: number;
   flapAngle?: number;
   restAngle?: number;
@@ -107,10 +108,10 @@ const DEFAULT_ITEMS: FolderFloatItem[] = [
 
 const PAD = 28;
 const CHAR = 6.8;
-const GAP = 12;
-const ROW = 52;
+const GAP = 10;
+const ROW = 48;
 const DRAG_MIN = 4;
-const ZONE_PAD = 8;
+const PILL_HEIGHT = 36;
 
 const jitter = (i: number) => {
   const x = Math.sin(i * 12.9898 + 4.1414) * 43758.5453;
@@ -121,6 +122,7 @@ const computeLayout = (
   list: { label: string; value: string }[],
   spread: number,
   lift: number,
+  maxRise: number,
   tilt: number,
   sizes: PillSize[]
 ): PillPosition[] => {
@@ -129,7 +131,7 @@ const computeLayout = (
   let width = 0;
 
   list.forEach((item, i) => {
-    const pw = sizes[i]?.w ?? PAD + item.label.length * CHAR;
+    const pw = sizes[i]?.w ?? Math.min(225, PAD + item.label.length * CHAR);
     if (row.length && width + GAP + pw > spread * 2) {
       rows.push({ items: row, width });
       row = [];
@@ -140,15 +142,26 @@ const computeLayout = (
   });
   if (row.length) rows.push({ items: row, width });
 
+  const minTop = -(maxRise - 12);
+  const usableVerticalSpan = Math.max(36, Math.abs(minTop) - lift - PILL_HEIGHT);
+  const rowStep =
+    rows.length > 1 ? Math.min(ROW, usableVerticalSpan / (rows.length - 1)) : ROW;
+
   const pos: PillPosition[] = [];
   rows.forEach((r, ri) => {
     let x = -r.width / 2;
-    const shift = (ri % 2 ? 1 : -1) * Math.min(16, spread * 0.1);
+    const shift = (ri % 2 ? 1 : -1) * Math.min(12, spread * 0.08);
     r.items.forEach(({ i, pw }) => {
       const j = jitter(i);
+      const rawX = x + pw / 2 + shift + (j - 0.5) * 6;
+      const halfBound = Math.max(0, spread - pw / 2 - 4);
+      const clampedX = Math.min(halfBound, Math.max(-halfBound, rawX));
+      const rawY = -lift - ri * rowStep - j * 4;
+      const clampedY = Math.max(minTop, Math.min(-lift, rawY));
+
       pos[i] = {
-        x: x + pw / 2 + shift + (j - 0.5) * 6,
-        y: -lift - ri * ROW - j * 6,
+        x: clampedX,
+        y: clampedY,
         r: tilt * (j * 2 - 1),
       };
       x += pw + GAP;
@@ -180,6 +193,7 @@ export function FolderFloat({
   radius = 14,
   spread = 180,
   lift = 26,
+  maxRise = 210,
   tilt = 8,
   flapAngle = 34,
   restAngle = 16,
@@ -192,6 +206,8 @@ export function FolderFloat({
   const [popped, setPopped] = useState(-1);
   const [live, setLive] = useState(false);
   const [sizes, setSizes] = useState<PillSize[]>([]);
+  const [containerHalfWidth, setContainerHalfWidth] = useState<number>(spread);
+  const rootRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const pillRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const world = useRef<PhysicsWorldState>({
@@ -237,14 +253,25 @@ export function FolderFloat({
   );
   const n = list.length;
   const sub = sublabel || `${n} ${n === 1 ? "note" : "notes"}`;
+  const effectiveSpread = Math.min(spread, containerHalfWidth);
+
   const pos = useMemo(
-    () => computeLayout(list, spread, lift, tilt, sizes),
-    [list, spread, lift, tilt, sizes]
+    () => computeLayout(list, effectiveSpread, lift, maxRise, tilt, sizes),
+    [list, effectiveSpread, lift, maxRise, tilt, sizes]
   );
 
   const labelsKey = list.map((item) => item.label).join("|");
   useLayoutEffect(() => {
+    const syncContainerBounds = () => {
+      const parentW = rootRef.current?.parentElement?.clientWidth ?? 0;
+      if (parentW > 0) {
+        const nextHalf = Math.max(120, Math.floor((parentW - 12) / 2));
+        setContainerHalfWidth(nextHalf);
+      }
+    };
+
     const measure = () => {
+      syncContainerBounds();
       const next: PillSize[] = [];
       for (let i = 0; i < n; i++) {
         const el = pillRefs.current[i];
@@ -260,6 +287,12 @@ export function FolderFloat({
     };
     measure();
     document.fonts?.ready.then(measure);
+
+    const parentEl = rootRef.current?.parentElement;
+    if (!parentEl || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => syncContainerBounds());
+    ro.observe(parentEl);
+    return () => ro.disconnect();
   }, [n, labelsKey]);
 
   const stopPhysics = useCallback(() => {
@@ -305,12 +338,12 @@ export function FolderFloat({
     engine.enableSleeping = false;
     w.engine = engine;
     w.sizes = els.map((el) => ({ w: el.offsetWidth, h: el.offsetHeight }));
-    const ys = pos.map((p) => p.y);
+    const maxPillH = Math.max(PILL_HEIGHT, ...w.sizes.map((s) => s.h));
     const zone = {
-      left: -spread - ZONE_PAD,
-      right: spread + ZONE_PAD,
-      top: Math.min(...ys) - ZONE_PAD,
-      bottom: -lift + Math.max(...w.sizes.map((s) => s.h)),
+      left: -effectiveSpread,
+      right: effectiveSpread,
+      top: -maxRise,
+      bottom: Math.max(-2, -lift + maxPillH + 4),
     };
     w.zone = zone;
     w.phases = els.map((_, i) => jitter(i) * Math.PI * 2);
@@ -392,7 +425,7 @@ export function FolderFloat({
     };
     w.raf = requestAnimationFrame(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [n, spread, lift, posKey]);
+  }, [n, effectiveSpread, lift, maxRise, posKey]);
 
   const setOpenState = useCallback(
     (next: boolean) => {
@@ -531,7 +564,7 @@ export function FolderFloat({
     "--ff-item": itemColor,
     "--ff-item-ink": itemTextColor,
     "--ff-label": labelColor,
-    "--ff-spread": `${spread}px`,
+    "--ff-spread": `${effectiveSpread}px`,
     "--ff-lift": `${lift}px`,
     "--ff-angle": `${flapAngle}deg`,
     "--ff-rest": `${restAngle}deg`,
@@ -544,6 +577,7 @@ export function FolderFloat({
 
   return (
     <div
+      ref={rootRef}
       className={`folder-float${className ? ` ${className}` : ""}`}
       data-open={open ? "" : undefined}
       data-live={live ? "" : undefined}
