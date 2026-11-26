@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LandingHero } from "@/components/landing/LandingHero";
+import { OwnerAndFeedbackSection } from "@/components/landing/OwnerAndFeedbackSection";
 
 export default function HomePage() {
   return (
@@ -92,6 +93,9 @@ export default function HomePage() {
             </Card>
           </div>
         </section>
+
+        {/* Section Baru: FlipCard Pemilik & FolderFloat Komentar Pelanggan */}
+        <OwnerAndFeedbackSection />
       </main>
 
       {/* Footer */}
