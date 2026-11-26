@@ -126,132 +126,166 @@ export function OwnerAndFeedbackSection() {
       aria-labelledby="owner-reviews-heading"
       className="max-w-6xl mx-auto px-4 pb-20 pt-4 border-t border-border overflow-x-clip"
     >
-      <div className="mb-10 pt-8">
-        <Badge variant="outline" className="mb-2 gap-1.5 text-xs">
-          <Wrench className="size-3.5 text-primary" aria-hidden="true" />
-          <span>Tentang Bengkel &amp; Testimoni</span>
-        </Badge>
-        <h2
-          id="owner-reviews-heading"
-          className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
-        >
-          Pendiri Bengkel &amp; Kata Pelanggan
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          Balik kartu profil untuk membaca pesan pendiri kami sejak 2016, dan
-          klik folder interaktif untuk melihat komentar serta rating pelanggan.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        {/* Bagian Kiri: FlipCard Pemilik Tanpa Container Pembungkus */}
-        <div className="lg:col-span-5 flex flex-col items-center gap-4">
-          <FlipCard
-            width={296}
-            height={396}
-            radius={20}
-            axis="y"
-            flipOnClick
-            draggable
-            tilt
-            glare
-            glareOpacity={0.2}
-            hoverScale={1.02}
-            background={isDark ? "#18181b" : "#ffffff"}
-            color={isDark ? "#f4f4f5" : "#0f172a"}
-            shadowColor="#000000"
-            shadowOpacity={isDark ? 0.55 : 0.22}
-            ariaLabel="Kartu profil Pak Hendro, pemilik bengkel GarageLog. Tekan Enter atau klik untuk membalik kartu."
-            onFlipChange={setIsOwnerFlipped}
-            front={
-              <div className="relative w-full h-full">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/images/landing/pemilik-bengkel.jpg"
-                  alt="Pak Hendro, pemilik bengkel modifikasi motor GarageLog"
-                  draggable={false}
-                  className="w-full h-full object-cover"
-                />
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent"
-                />
-                <div className="absolute inset-x-0 bottom-0 p-5 text-left text-white space-y-1">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
-                    <Calendar className="size-3" aria-hidden="true" />
-                    Est. 2016
-                  </span>
-                  <h3 className="text-xl font-extrabold leading-tight">
-                    Pak Hendro
-                  </h3>
-                  <p className="text-xs text-zinc-200">
-                    Pemilik &amp; Kepala Mekanik GarageLog
-                  </p>
-                </div>
-              </div>
-            }
-            back={
-              <div className="w-full h-full p-6 border border-border rounded-[inherit] flex flex-col justify-between text-left bg-card text-card-foreground">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge variant="info" className="gap-1.5 text-[11px]">
-                      <Calendar className="size-3" aria-hidden="true" />
-                      <span>Berdiri Tahun 2016</span>
-                    </Badge>
-                    <Wrench
-                      className="size-4 text-primary"
-                      aria-hidden="true"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <MessageSquareQuote
-                      className="size-6 text-primary/80"
-                      aria-hidden="true"
-                    />
-                    <p className="text-sm leading-relaxed text-foreground font-medium">
-                      &ldquo;Modifikasi motor bukan sekadar tampilan, tapi soal
-                      presisi rangka, keamanan kelistrikan, dan rasa percaya.
-                      Sejak bengkel ini berdiri tahun 2016, kami berkomitmen
-                      membuat setiap pemilik selalu melihat progres motornya
-                      secara jujur.&rdquo;
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-border flex items-end justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-bold text-foreground">
-                      Pak Hendro
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Pemilik Bengkel GarageLog &bull; Est. 2016
-                    </p>
-                  </div>
-                  <span className="text-[11px] text-primary font-medium inline-flex items-center gap-1 shrink-0">
-                    <RotateCw className="size-3" aria-hidden="true" />
-                    Balik
-                  </span>
-                </div>
-              </div>
-            }
-          />
-
-          <p className="text-xs text-muted-foreground text-center inline-flex items-center gap-1.5">
-            <RotateCw className="size-3" aria-hidden="true" />
-            <span>
-              {isOwnerFlipped
-                ? "Klik atau geser lagi untuk melihat foto pemilik"
-                : "Klik atau geser kartu untuk membaca pesan pemilik"}
-            </span>
+      {/* Header Section Seimbang Kiri-Kanan */}
+      <div className="mb-10 pt-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-2">
+          <Badge variant="outline" className="gap-1.5 text-xs">
+            <Wrench className="size-3.5 text-primary" aria-hidden="true" />
+            <span>Tentang Bengkel &amp; Testimoni</span>
+          </Badge>
+          <h2
+            id="owner-reviews-heading"
+            className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+          >
+            Pendiri Bengkel &amp; Kata Pelanggan
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-xl">
+            Balik kartu profil untuk membaca pesan pendiri kami sejak 2016, dan
+            klik folder interaktif untuk melihat komentar serta rating pelanggan.
           </p>
         </div>
 
-        {/* Bagian Kanan: FolderFloat & Ulasan Pelanggan Tanpa Container Kotak */}
-        <div className="lg:col-span-7 flex flex-col justify-between gap-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground shrink-0 pb-1">
+          <div className="inline-flex items-center gap-1.5">
+            <Calendar className="size-3.5 text-primary" aria-hidden="true" />
+            <span className="font-semibold text-foreground">Est. 2016</span>
+          </div>
+          <span aria-hidden="true" className="text-border">
+            &bull;
+          </span>
+          <div className="inline-flex items-center gap-1.5 tabular-nums">
+            <Star
+              className="size-3.5 fill-amber-500 text-amber-500"
+              aria-hidden="true"
+            />
+            <span className="font-semibold text-foreground">
+              {AVERAGE_RATING} / 5.0
+            </span>
+            <span>({CUSTOMER_REVIEWS.length} ulasan)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid 2 Kolom Sejajar Atas (items-start) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        {/* Bagian Kiri: Header Kolom + FlipCard Pemilik */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-lg font-bold text-foreground">
+              <h3 className="text-base font-bold text-foreground">
+                Profil Pemilik Bengkel
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isOwnerFlipped
+                  ? "Klik atau geser lagi untuk melihat foto pemilik."
+                  : "Klik atau geser kartu untuk membaca pesan pemilik."}
+              </p>
+            </div>
+            <Badge variant="secondary" className="gap-1 text-[11px] shrink-0">
+              <RotateCw className="size-3" aria-hidden="true" />
+              <span>{isOwnerFlipped ? "Belakang" : "Klik Kartu"}</span>
+            </Badge>
+          </div>
+
+          <div className="flex justify-center pt-2">
+            <FlipCard
+              width={296}
+              height={396}
+              radius={20}
+              axis="y"
+              flipOnClick
+              draggable
+              tilt
+              glare
+              glareOpacity={0.2}
+              hoverScale={1.02}
+              background={isDark ? "#18181b" : "#ffffff"}
+              color={isDark ? "#f4f4f5" : "#0f172a"}
+              shadowColor="#000000"
+              shadowOpacity={isDark ? 0.55 : 0.22}
+              ariaLabel="Kartu profil Pak Hendro, pemilik bengkel GarageLog. Tekan Enter atau klik untuk membalik kartu."
+              onFlipChange={setIsOwnerFlipped}
+              front={
+                <div className="relative w-full h-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/images/landing/pemilik-bengkel.jpg"
+                    alt="Pak Hendro, pemilik bengkel modifikasi motor GarageLog"
+                    draggable={false}
+                    className="w-full h-full object-cover"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 p-5 text-left text-white space-y-1">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
+                      <Calendar className="size-3" aria-hidden="true" />
+                      Est. 2016
+                    </span>
+                    <h4 className="text-xl font-extrabold leading-tight">
+                      Pak Hendro
+                    </h4>
+                    <p className="text-xs text-zinc-200">
+                      Pemilik &amp; Kepala Mekanik GarageLog
+                    </p>
+                  </div>
+                </div>
+              }
+              back={
+                <div className="w-full h-full p-6 border border-border rounded-[inherit] flex flex-col justify-between text-left bg-card text-card-foreground">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="info" className="gap-1.5 text-[11px]">
+                        <Calendar className="size-3" aria-hidden="true" />
+                        <span>Berdiri Tahun 2016</span>
+                      </Badge>
+                      <Wrench
+                        className="size-4 text-primary"
+                        aria-hidden="true"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <MessageSquareQuote
+                        className="size-6 text-primary/80"
+                        aria-hidden="true"
+                      />
+                      <p className="text-sm leading-relaxed text-foreground font-medium">
+                        &ldquo;Modifikasi motor bukan sekadar tampilan, tapi
+                        soal presisi rangka, keamanan kelistrikan, dan rasa
+                        percaya. Sejak bengkel ini berdiri tahun 2016, kami
+                        berkomitmen membuat setiap pemilik selalu melihat
+                        progres motornya secara jujur.&rdquo;
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-border flex items-end justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">
+                        Pak Hendro
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Pemilik Bengkel GarageLog &bull; Est. 2016
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-primary font-medium inline-flex items-center gap-1 shrink-0">
+                      <RotateCw className="size-3" aria-hidden="true" />
+                      Balik
+                    </span>
+                  </div>
+                </div>
+              }
+            />
+          </div>
+        </div>
+
+        {/* Bagian Kanan: Header Kolom Sejajar + FolderFloat & Ulasan */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-foreground">
                 Komentar &amp; Rating Pelanggan
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -261,20 +295,13 @@ export function OwnerAndFeedbackSection() {
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold tabular-nums text-foreground">
-              <Star
-                className="size-4 fill-amber-500 text-amber-500"
-                aria-hidden="true"
-              />
-              <span>{AVERAGE_RATING} / 5.0</span>
-              <span className="text-muted-foreground font-normal">
-                ({CUSTOMER_REVIEWS.length} ulasan)
-              </span>
-            </div>
+            <Badge variant="secondary" className="gap-1 text-[11px] shrink-0">
+              <span>{folderOpen ? "Terbuka" : "Klik Folder"}</span>
+            </Badge>
           </div>
 
-          {/* Area Terbuka FolderFloat Tanpa Kotak/Border */}
-          <div className="pt-44 pb-4 flex flex-col items-center justify-end overflow-visible">
+          {/* Area Terbuka FolderFloat */}
+          <div className="pt-40 pb-2 flex flex-col items-center justify-end overflow-visible">
             <FolderFloat
               items={folderItems}
               label="Ulasan Customer"
