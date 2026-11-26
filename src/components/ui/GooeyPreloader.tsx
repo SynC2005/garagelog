@@ -13,7 +13,9 @@ if (typeof window !== "undefined") {
 export interface GooeyPreloaderProps {
   active: boolean;
   readyToReveal: boolean;
+  subtitle?: string;
   orderCode?: string;
+  ariaLabel?: string;
   onComplete?: () => void;
 }
 
@@ -22,7 +24,9 @@ const BEAT_TARGETS = [25, 50, 75, 100] as const;
 export function GooeyPreloader({
   active,
   readyToReveal,
+  subtitle,
   orderCode,
+  ariaLabel,
   onComplete,
 }: GooeyPreloaderProps) {
   const rawId = useId();
@@ -47,6 +51,7 @@ export function GooeyPreloader({
   const readyRef = useRef(readyToReveal);
   const minBeatsDoneRef = useRef(false);
   const revealedRef = useRef(false);
+  const revealTlRef = useRef<gsap.core.Timeline | null>(null);
   const onCompleteRef = useRef(onComplete);
 
   React.useEffect(() => {
@@ -56,6 +61,17 @@ export function GooeyPreloader({
   React.useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  React.useEffect(() => {
+    if (!active) {
+      revealTlRef.current?.kill();
+      revealTlRef.current = null;
+    }
+    return () => {
+      revealTlRef.current?.kill();
+      revealTlRef.current = null;
+    };
+  }, [active]);
 
   const tryStartReveal = React.useCallback(() => {
     if (!active || revealedRef.current) return;
@@ -82,11 +98,14 @@ export function GooeyPreloader({
       return;
     }
 
+    revealTlRef.current?.kill();
     const revealTl = gsap.timeline({
       onComplete: () => {
+        revealTlRef.current = null;
         onCompleteRef.current?.();
       },
     });
+    revealTlRef.current = revealTl;
 
     if (counterWrapRef.current) {
       revealTl.to(
@@ -336,8 +355,8 @@ export function GooeyPreloader({
       ref={containerRef}
       role="status"
       aria-live="polite"
-      aria-label="Memuat halaman pelacakan pesanan"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden select-none"
+      aria-label={ariaLabel || "Memuat halaman GarageLog"}
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden select-none"
     >
       {/* SVG Backdrop dengan Lubang Lingkaran Membuka ke Halaman Pelacakan */}
       <svg
@@ -416,9 +435,9 @@ export function GooeyPreloader({
         <span className="font-extrabold text-sm tracking-tight leading-none">
           GarageLog
         </span>
-        {orderCode && (
-          <span className="mt-1 font-mono text-[10px] font-semibold tracking-wider opacity-90">
-            {orderCode}
+        {(subtitle ?? orderCode) && (
+          <span className="mt-1 font-mono text-[10px] font-semibold tracking-wider opacity-90 max-w-[126px] truncate">
+            {subtitle ?? orderCode}
           </span>
         )}
       </div>

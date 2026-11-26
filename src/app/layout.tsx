@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { RouteTransitionProvider } from "@/components/route-transition-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -42,7 +43,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <RouteTransitionProvider>{children}</RouteTransitionProvider>
           <Toaster richColors position="top-right" closeButton />
         </ThemeProvider>
       </body>

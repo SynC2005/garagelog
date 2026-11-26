@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Wrench,
   Lock,
@@ -14,6 +13,7 @@ import {
   Crown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRouteTransition } from "@/components/route-transition-provider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,33 +39,38 @@ function formatCountdown(seconds: number): string {
 }
 
 export function MasukWrapper() {
-  const router = useRouter();
+  const { startRouteTransition } = useRouteTransition();
   const [email, setEmail] = React.useState("admin@garagelog.com");
   const [password, setPassword] = React.useState("bengkel123");
   const [error, setError] = React.useState<string | null>(null);
   const [lockoutSeconds, setLockoutSeconds] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
 
+  const hasLockout = lockoutSeconds > 0;
+
   // Pulihkan hitung mundur jika user memuat ulang halaman saat masih masa tunggu
   React.useEffect(() => {
-    try {
-      const savedUntil = sessionStorage.getItem(LOCKOUT_STORAGE_KEY);
-      if (!savedUntil) return;
-      const untilMs = Number(savedUntil);
-      const remaining = Math.ceil((untilMs - Date.now()) / 1000);
-      if (remaining > 0) {
-        setLockoutSeconds(remaining);
-        setError(
-          "Batas 3x percobaan masuk tercapai. Tunggu hingga hitung mundur selesai sebelum mencoba lagi."
-        );
-      } else {
-        sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
-      }
-    } catch {}
+    const timer = window.setTimeout(() => {
+      try {
+        const savedUntil = sessionStorage.getItem(LOCKOUT_STORAGE_KEY);
+        if (!savedUntil) return;
+        const untilMs = Number(savedUntil);
+        const remaining = Math.ceil((untilMs - Date.now()) / 1000);
+        if (remaining > 0) {
+          setLockoutSeconds(remaining);
+          setError(
+            "Batas 3x percobaan masuk tercapai. Tunggu hingga hitung mundur selesai sebelum mencoba lagi."
+          );
+        } else {
+          sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   React.useEffect(() => {
-    if (lockoutSeconds <= 0) return;
+    if (!hasLockout) return;
 
     const timer = window.setInterval(() => {
       setLockoutSeconds((prev) => {
@@ -81,7 +86,7 @@ export function MasukWrapper() {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [lockoutSeconds > 0]);
+  }, [hasLockout]);
 
   const applyDemoAccount = (demoEmail: string) => {
     setEmail(demoEmail);
@@ -93,30 +98,35 @@ export function MasukWrapper() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (lockoutSeconds > 0) return;
+    if (lockoutSeconds > 0 || isLoading) return;
 
     setError(null);
     setIsLoading(true);
 
-    const res = await loginStaffAction({
-      email,
-      kataSandi: password,
-    });
+    try {
+      const res = await loginStaffAction({
+        email,
+        kataSandi: password,
+      });
 
-    setIsLoading(false);
+      if (res.success && res.data) {
+        try {
+          sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
+          sessionStorage.setItem("active_user", JSON.stringify(res.data));
+        } catch {}
+        toast.success(`Selamat datang, ${res.data.nama}`);
+        const targetRoute =
+          res.data.defaultRoute ||
+          (res.data.peran === "Montir" ? "/tugas" : "/dashboard");
+        startRouteTransition({
+          href: targetRoute,
+          subtitle: `MASUK • ${res.data.peran.toUpperCase()}`,
+          ariaLabel: `Memuat halaman ${res.data.peran} GarageLog`,
+          refresh: true,
+        });
+        return;
+      }
 
-    if (res.success && res.data) {
-      try {
-        sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
-        sessionStorage.setItem("active_user", JSON.stringify(res.data));
-      } catch {}
-      toast.success(`Selamat datang, ${res.data.nama}`);
-      const targetRoute =
-        res.data.defaultRoute ||
-        (res.data.peran === "Montir" ? "/tugas" : "/dashboard");
-      router.push(targetRoute);
-      router.refresh();
-    } else {
       if (res.retryAfterSeconds && res.retryAfterSeconds > 0) {
         const untilMs = Date.now() + res.retryAfterSeconds * 1000;
         try {
@@ -125,6 +135,10 @@ export function MasukWrapper() {
         setLockoutSeconds(res.retryAfterSeconds);
       }
       setError(res.error || "Email atau kata sandi tidak sesuai.");
+      setIsLoading(false);
+    } catch {
+      setError("Gagal terhubung ke server. Periksa koneksi dan coba lagi.");
+      setIsLoading(false);
     }
   };
 

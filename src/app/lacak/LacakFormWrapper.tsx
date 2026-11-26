@@ -17,11 +17,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useLacakTransition } from "@/components/lacak/LacakTransitionContext";
+import { useRouteTransition } from "@/components/route-transition-provider";
 import { trackOrderAction } from "@/server/api/lacak/lacakApi";
 
 export function LacakFormWrapper() {
-  const { startTrackingTransition } = useLacakTransition();
+  const { startRouteTransition } = useRouteTransition();
   const [kode, setKode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -37,17 +37,26 @@ export function LacakFormWrapper() {
     }
 
     setIsLoading(true);
-    const res = await trackOrderAction(cleanCode);
+    try {
+      const res = await trackOrderAction(cleanCode);
 
-    if (res.success && res.data) {
-      startTrackingTransition(cleanCode);
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
+      if (res.success && res.data) {
+        startRouteTransition({
+          href: `/lacak/${cleanCode}`,
+          subtitle: cleanCode,
+          ariaLabel: `Memuat halaman pelacakan pesanan ${cleanCode}`,
+        });
+        return;
+      }
+
       setError(
         res.error ||
           "Kode tidak ditemukan. Periksa kembali kode pada nota atau pesan Anda."
       );
+    } catch {
+      setError("Gagal memeriksa kode pesanan. Silakan coba lagi.");
+    } finally {
+      setIsLoading(false);
     }
   };
 

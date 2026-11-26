@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Wrench, LogOut, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { useRouteTransition } from "@/components/route-transition-provider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,7 +78,8 @@ export function StaffLayout({
   allowedFeatures,
 }: StaffLayoutProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { startRouteTransition } = useRouteTransition();
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const { resolvedTheme } = useTheme();
   const mounted = React.useSyncExternalStore(
     emptySubscribe,
@@ -106,12 +109,23 @@ export function StaffLayout({
       : visibleNavItems[0]?.href || "/pesanan";
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
       sessionStorage.removeItem("active_user");
     } catch {}
-    await logoutStaffAction();
-    router.push("/masuk");
-    router.refresh();
+    try {
+      await logoutStaffAction();
+      startRouteTransition({
+        href: "/masuk",
+        subtitle: "KELUAR SESI",
+        ariaLabel: "Mengakhiri sesi staf dan menuju halaman masuk",
+        refresh: true,
+      });
+    } catch {
+      setIsLoggingOut(false);
+      toast.error("Gagal mengakhiri sesi. Silakan coba lagi.");
+    }
   };
 
   const menuItems: StaggeredMenuItem[] = visibleNavItems.map((item) => {
@@ -161,12 +175,13 @@ export function StaffLayout({
         type="button"
         variant="ghost"
         size="sm"
+        disabled={isLoggingOut}
         onClick={handleLogout}
         aria-label="Keluar dari akun staf"
         className="hidden sm:inline-flex gap-1.5 text-xs"
       >
         <LogOut className="size-3.5 text-destructive" aria-hidden="true" />
-        <span>Keluar</span>
+        <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>
       </Button>
     </>
   );
@@ -200,11 +215,12 @@ export function StaffLayout({
         type="button"
         variant="outline"
         size="sm"
+        disabled={isLoggingOut}
         onClick={handleLogout}
         className="w-full justify-center"
       >
         <LogOut className="size-3.5 text-destructive" aria-hidden="true" />
-        <span>Keluar</span>
+        <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>
       </Button>
     </div>
   );
