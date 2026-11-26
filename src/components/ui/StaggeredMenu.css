@@ -183,6 +183,7 @@
   z-index: 10;
   pointer-events: auto;
   opacity: 0;
+  visibility: hidden;
 }
 
 [data-position="left"] .staggered-menu-panel {
@@ -201,6 +202,7 @@
   pointer-events: none;
   z-index: 5;
   opacity: 0;
+  visibility: hidden;
 }
 
 [data-position="left"] .sm-prelayers {

@@ -115,20 +115,51 @@ export function StaggeredMenu({
       preLayerElsRef.current = preLayers;
 
       const offscreen = position === "left" ? -100 : 100;
-      gsap.set([panel, ...preLayers], { xPercent: offscreen, opacity: 1 });
+      const isOpen = openRef.current;
+      gsap.set([panel, ...preLayers], {
+        xPercent: isOpen ? 0 : offscreen,
+        opacity: 1,
+        visibility: isOpen ? "visible" : "hidden",
+      });
       if (preContainer) {
-        gsap.set(preContainer, { xPercent: 0, opacity: 1 });
+        gsap.set(preContainer, {
+          xPercent: 0,
+          opacity: 1,
+          visibility: isOpen ? "visible" : "hidden",
+        });
       }
       gsap.set(plusH, { transformOrigin: "50% 50%", rotate: 0 });
       gsap.set(plusV, { transformOrigin: "50% 50%", rotate: 90 });
-      gsap.set(icon, { rotate: 0, transformOrigin: "50% 50%" });
+      gsap.set(icon, { rotate: isOpen ? 225 : 0, transformOrigin: "50% 50%" });
       gsap.set(textInner, { yPercent: 0 });
       if (toggleBtnRef.current && menuButtonColor) {
         gsap.set(toggleBtnRef.current, { color: menuButtonColor });
       }
     });
     return () => ctx.revert();
-  }, [menuButtonColor, position]);
+  }, [position, menuButtonColor]);
+
+  const colorsKey = (colors || []).join("|");
+  useLayoutEffect(() => {
+    const preContainer = preLayersRef.current;
+    const panel = panelRef.current;
+    if (!preContainer || !panel) return;
+    const preLayers = Array.from(
+      preContainer.querySelectorAll<HTMLDivElement>(".sm-prelayer")
+    );
+    preLayerElsRef.current = preLayers;
+    const offscreen = position === "left" ? -100 : 100;
+    const isOpen = openRef.current;
+    gsap.set(preContainer, {
+      opacity: 1,
+      visibility: isOpen ? "visible" : "hidden",
+    });
+    gsap.set([panel, ...preLayers], {
+      xPercent: isOpen ? 0 : offscreen,
+      opacity: 1,
+      visibility: isOpen ? "visible" : "hidden",
+    });
+  }, [colorsKey, position]);
 
   const buildOpenTimeline = useCallback(() => {
     const panel = panelRef.current;
@@ -143,6 +174,7 @@ export function StaggeredMenu({
 
     const reduce =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const preContainer = preLayersRef.current;
     const itemEls = Array.from(
       panel.querySelectorAll<HTMLElement>(".sm-panel-itemLabel")
     );
@@ -158,6 +190,11 @@ export function StaggeredMenu({
 
     const offscreen = position === "left" ? -100 : 100;
     const layerStates = layers.map((el) => ({ el, start: offscreen }));
+
+    if (preContainer) {
+      gsap.set(preContainer, { visibility: "visible", opacity: 1 });
+    }
+    gsap.set([panel, ...layers], { visibility: "visible", opacity: 1 });
 
     if (reduce) {
       const tl = gsap.timeline({ paused: true });
@@ -290,12 +327,14 @@ export function StaggeredMenu({
 
     const reduce =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const preContainer = preLayersRef.current;
     const all = [...layers, panel];
     closeTweenRef.current?.kill();
     const offscreen = position === "left" ? -100 : 100;
 
     if (reduce) {
-      gsap.set(all, { xPercent: offscreen });
+      gsap.set(all, { xPercent: offscreen, visibility: "hidden" });
+      if (preContainer) gsap.set(preContainer, { visibility: "hidden" });
       busyRef.current = false;
       return;
     }
@@ -306,6 +345,8 @@ export function StaggeredMenu({
       ease: "power3.in",
       overwrite: "auto",
       onComplete: () => {
+        gsap.set(all, { visibility: "hidden" });
+        if (preContainer) gsap.set(preContainer, { visibility: "hidden" });
         const itemEls = Array.from(
           panel.querySelectorAll<HTMLElement>(".sm-panel-itemLabel")
         );
@@ -564,7 +605,7 @@ export function StaggeredMenu({
       <div ref={preLayersRef} className="sm-prelayers" aria-hidden="true">
         {layersToRender.map((color, i) => (
           <div
-            key={`${color}-${i}`}
+            key={i}
             className="sm-prelayer"
             style={{ background: color }}
           />
