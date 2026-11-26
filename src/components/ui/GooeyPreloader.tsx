@@ -4,7 +4,7 @@ import * as React from "react";
 import { useId, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Wrench } from "lucide-react";
+import { WorkshopEmblem } from "@/components/ui/WorkshopEmblem";
 import { useBrand } from "@/components/brand-provider";
 
 if (typeof window !== "undefined") {
@@ -612,7 +612,7 @@ export function GooeyPreloader({
               className="w-full h-full object-contain p-0.5"
             />
           ) : (
-            <Wrench className="size-4" aria-hidden="true" />
+            <WorkshopEmblem className="size-5" />
           )}
         </div>
         <span className="font-extrabold text-sm tracking-tight leading-none max-w-[122px] truncate">

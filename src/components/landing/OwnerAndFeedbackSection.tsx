@@ -9,8 +9,8 @@ import {
   MessageSquareQuote,
   RotateCw,
   Star,
-  Wrench,
 } from "lucide-react";
+import { WorkshopEmblem } from "@/components/ui/WorkshopEmblem";
 import { FlipCard } from "@/components/ui/FlipCard";
 import { FolderFloat, type FolderFloatItem } from "@/components/ui/FolderFloat";
 import { Badge } from "@/components/ui/badge";
@@ -80,7 +80,7 @@ export function OwnerAndFeedbackSection({
       <div className="mb-10 pt-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
           <Badge variant="outline" className="gap-1.5 text-xs">
-            <Wrench className="size-3.5 text-primary" aria-hidden="true" />
+            <WorkshopEmblem className="size-3.5 text-primary" aria-hidden="true" />
             <span>Tentang Bengkel &amp; Testimoni</span>
           </Badge>
           <h2
@@ -193,7 +193,7 @@ export function OwnerAndFeedbackSection({
                         <Calendar className="size-3" aria-hidden="true" />
                         <span>Berdiri Tahun {settings.tahunBerdiri}</span>
                       </Badge>
-                      <Wrench
+                      <WorkshopEmblem
                         className="size-4 text-primary"
                         aria-hidden="true"
                       />

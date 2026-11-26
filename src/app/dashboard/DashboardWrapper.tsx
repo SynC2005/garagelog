@@ -51,8 +51,7 @@ export function DashboardWrapper({
       label: "Pesanan aktif",
       count: initialStats.activeOrders,
       icon: ClipboardList,
-      color: "text-sky-600 dark:text-sky-400",
-      bg: "bg-sky-500/10",
+      color: "text-muted-foreground",
       link: "/pesanan",
     },
     {
@@ -60,15 +59,13 @@ export function DashboardWrapper({
       count: initialStats.pendingApproval,
       icon: Clock,
       color: "text-amber-600 dark:text-amber-400",
-      bg: "bg-amber-500/10",
       link: "/pesanan",
     },
     {
       label: "Siap diambil",
       count: initialStats.readyOrders,
       icon: CheckCircle2,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-500/10",
+      color: "text-primary",
       link: "/pesanan",
     },
     {
@@ -76,7 +73,6 @@ export function DashboardWrapper({
       count: initialStats.lowStockCount,
       icon: AlertTriangle,
       color: "text-destructive",
-      bg: "bg-destructive/10",
       link: "/stok",
     },
   ];
@@ -115,7 +111,7 @@ export function DashboardWrapper({
               className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Card className="py-0 gap-0 hover:border-foreground/30 transition-colors cursor-pointer">
-                <CardContent className="p-5 flex items-center justify-between">
+                <CardContent className="p-5 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">
                       {s.label}
@@ -124,11 +120,7 @@ export function DashboardWrapper({
                       {String(s.count).padStart(2, "0")}
                     </p>
                   </div>
-                  <div
-                    className={`size-11 rounded-lg ${s.bg} ${s.color} flex items-center justify-center`}
-                  >
-                    <Icon className="size-5" aria-hidden="true" />
-                  </div>
+                  <Icon className={`size-4 mt-0.5 shrink-0 ${s.color}`} aria-hidden="true" />
                 </CardContent>
               </Card>
             </Link>

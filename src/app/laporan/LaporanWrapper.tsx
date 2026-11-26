@@ -195,7 +195,7 @@ export function LaporanWrapper({
           {/* 3 KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="py-0 gap-0">
-              <CardContent className="p-5 flex items-center justify-between">
+              <CardContent className="p-5 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">
                     Total penjualan (Omzet)
@@ -204,14 +204,12 @@ export function LaporanWrapper({
                     {formatCurrency(data.totalPenjualan)}
                   </p>
                 </div>
-                <div className="size-11 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <DollarSign className="size-5" aria-hidden="true" />
-                </div>
+                <DollarSign className="size-4 mt-0.5 text-muted-foreground shrink-0" aria-hidden="true" />
               </CardContent>
             </Card>
 
             <Card className="py-0 gap-0">
-              <CardContent className="p-5 flex items-center justify-between">
+              <CardContent className="p-5 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">
                     Jumlah pesanan
@@ -220,14 +218,12 @@ export function LaporanWrapper({
                     {data.jumlahPesanan} unit
                   </p>
                 </div>
-                <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  <BarChart3 className="size-5" aria-hidden="true" />
-                </div>
+                <BarChart3 className="size-4 mt-0.5 text-primary shrink-0" aria-hidden="true" />
               </CardContent>
             </Card>
 
             <Card className="py-0 gap-0">
-              <CardContent className="p-5 flex items-center justify-between">
+              <CardContent className="p-5 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">
                     Rata-rata lama pengerjaan
@@ -236,9 +232,7 @@ export function LaporanWrapper({
                     {data.rataRataLamaPengerjaan} hari
                   </p>
                 </div>
-                <div className="size-11 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-                  <Clock className="size-5" aria-hidden="true" />
-                </div>
+                <Clock className="size-4 mt-0.5 text-muted-foreground shrink-0" aria-hidden="true" />
               </CardContent>
             </Card>
           </div>

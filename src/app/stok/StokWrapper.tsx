@@ -380,7 +380,7 @@ export function StokWrapper({
       {/* 3 KPI Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="py-0 gap-0">
-          <CardContent className="p-5 flex items-center justify-between">
+          <CardContent className="p-5 flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Jenis barang
@@ -389,14 +389,12 @@ export function StokWrapper({
                 {String(totalJenis).padStart(2, "0")}
               </p>
             </div>
-            <div className="size-11 rounded-lg bg-muted text-foreground flex items-center justify-center">
-              <Boxes className="size-5" aria-hidden="true" />
-            </div>
+            <Boxes className="size-4 mt-0.5 text-muted-foreground shrink-0" aria-hidden="true" />
           </CardContent>
         </Card>
 
         <Card className="py-0 gap-0">
-          <CardContent className="p-5 flex items-center justify-between">
+          <CardContent className="p-5 flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Stok menipis
@@ -405,14 +403,12 @@ export function StokWrapper({
                 {String(totalMenipis).padStart(2, "0")}
               </p>
             </div>
-            <div className="size-11 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <AlertTriangle className="size-5" aria-hidden="true" />
-            </div>
+            <AlertTriangle className="size-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
           </CardContent>
         </Card>
 
         <Card className="py-0 gap-0">
-          <CardContent className="p-5 flex items-center justify-between">
+          <CardContent className="p-5 flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Stok habis
@@ -421,9 +417,7 @@ export function StokWrapper({
                 {String(totalHabis).padStart(2, "0")}
               </p>
             </div>
-            <div className="size-11 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
-              <AlertTriangle className="size-5" aria-hidden="true" />
-            </div>
+            <AlertTriangle className="size-4 mt-0.5 text-destructive shrink-0" aria-hidden="true" />
           </CardContent>
         </Card>
       </div>

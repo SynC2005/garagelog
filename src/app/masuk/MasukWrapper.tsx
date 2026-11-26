@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useBrand } from "@/components/brand-provider";
 import { useRouteTransition } from "@/components/route-transition-provider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { WorkshopEmblem } from "@/components/ui/WorkshopEmblem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,8 +173,8 @@ export function MasukWrapper() {
                 />
               </div>
             ) : (
-              <div className="size-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto">
-                <Wrench className="size-6" aria-hidden="true" />
+              <div className="size-12 rounded-xl bg-foreground text-background dark:bg-primary dark:text-primary-foreground flex items-center justify-center mx-auto">
+                <WorkshopEmblem className="size-6" />
               </div>
             )}
             <CardTitle className="text-2xl font-bold tracking-tight">

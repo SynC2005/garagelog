@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
   Search,
-  Clock,
   ShieldCheck,
   Camera,
   ArrowRight,
@@ -220,9 +219,12 @@ export function LandingHero({ heroBgUrl }: LandingHeroProps) {
             <Card className="py-0 gap-0 shadow-md bg-card">
               <CardContent className="p-6 space-y-5">
                 <div className="flex items-start gap-3.5">
-                  <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Camera className="size-4" aria-hidden="true" />
-                  </div>
+                  <span
+                    aria-hidden="true"
+                    className="size-8 rounded-md border border-border bg-muted/70 font-mono text-xs font-bold text-primary flex items-center justify-center shrink-0 tabular-nums"
+                  >
+                    01
+                  </span>
                   <div>
                     <h2 className="font-semibold text-foreground text-sm">
                       Dokumentasi Foto Setiap Tahap
@@ -237,9 +239,12 @@ export function LandingHero({ heroBgUrl }: LandingHeroProps) {
                 <Separator />
 
                 <div className="flex items-start gap-3.5">
-                  <div className="size-9 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
-                    <Clock className="size-4" aria-hidden="true" />
-                  </div>
+                  <span
+                    aria-hidden="true"
+                    className="size-8 rounded-md border border-border bg-muted/70 font-mono text-xs font-bold text-primary flex items-center justify-center shrink-0 tabular-nums"
+                  >
+                    02
+                  </span>
                   <div>
                     <h2 className="font-semibold text-foreground text-sm">
                       Pembaruan Informasional
@@ -254,9 +259,12 @@ export function LandingHero({ heroBgUrl }: LandingHeroProps) {
                 <Separator />
 
                 <div className="flex items-start gap-3.5">
-                  <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="size-4" aria-hidden="true" />
-                  </div>
+                  <span
+                    aria-hidden="true"
+                    className="size-8 rounded-md border border-border bg-muted/70 font-mono text-xs font-bold text-primary flex items-center justify-center shrink-0 tabular-nums"
+                  >
+                    03
+                  </span>
                   <div>
                     <h2 className="font-semibold text-foreground text-sm">
                       Estimasi &amp; Riwayat Transparan

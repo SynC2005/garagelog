@@ -1,7 +1,7 @@
 "use client";
 
-import { Wrench } from "lucide-react";
 import { useBrand } from "@/components/brand-provider";
+import { WorkshopEmblem } from "@/components/ui/WorkshopEmblem";
 
 export interface BrandMarkProps {
   size?: "sm" | "md";
@@ -11,7 +11,7 @@ export interface BrandMarkProps {
 export function BrandMark({ size = "md", subtitleOverride }: BrandMarkProps) {
   const brand = useBrand();
   const boxSizeClass = size === "sm" ? "size-9" : "size-10";
-  const iconSizeClass = size === "sm" ? "size-4" : "size-5";
+  const iconSizeClass = size === "sm" ? "size-5" : "size-5";
   const titleSizeClass = size === "sm" ? "text-base" : "text-lg";
   const subtitle = subtitleOverride ?? brand.taglinePerusahaan;
   const isDefaultName = brand.namaPerusahaan.trim() === "GarageLog";
@@ -31,9 +31,9 @@ export function BrandMark({ size = "md", subtitleOverride }: BrandMarkProps) {
         </div>
       ) : (
         <div
-          className={`${boxSizeClass} rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0`}
+          className={`${boxSizeClass} rounded-lg bg-foreground text-background dark:bg-primary dark:text-primary-foreground flex items-center justify-center shrink-0`}
         >
-          <Wrench className={iconSizeClass} aria-hidden="true" />
+          <WorkshopEmblem className={iconSizeClass} />
         </div>
       )}
 
@@ -58,4 +58,3 @@ export function BrandMark({ size = "md", subtitleOverride }: BrandMarkProps) {
     </div>
   );
 }
-
