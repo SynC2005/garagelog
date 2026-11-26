@@ -427,14 +427,15 @@ export function FolderFloat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [n, effectiveSpread, lift, maxRise, posKey]);
 
+  const openRef = useRef(defaultOpen);
+
   const setOpenState = useCallback(
     (next: boolean) => {
       if (!next) stopPhysics();
-      setOpen((prev) => {
-        if (prev === next) return prev;
-        latest.current.onOpenChange?.(next);
-        return next;
-      });
+      if (openRef.current === next) return;
+      openRef.current = next;
+      setOpen(next);
+      latest.current.onOpenChange?.(next);
     },
     [stopPhysics]
   );
