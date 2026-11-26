@@ -69,11 +69,12 @@ export default function HomePage() {
                   2
                 </div>
                 <h3 className="font-semibold text-foreground text-base">
-                  Masukkan Kode
+                  Buka Halaman Lacak
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Ketikkan kode pesanan pada kolom pencarian di atas, lalu tekan tombol{" "}
-                  <strong className="text-foreground">Lacak Pesanan</strong>.
+                  Tekan tombol{" "}
+                  <strong className="text-foreground">Lacak Pesanan</strong> di atas,
+                  lalu masukkan kode pesanan Anda pada halaman pelacakan.
                 </p>
               </CardContent>
             </Card>

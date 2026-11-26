@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
   Search,
@@ -15,7 +16,6 @@ import { GridMotion, type GridMotionItem } from "@/components/ui/GridMotion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 const HERO_WORKSHOP_ITEMS: GridMotionItem[] = [
@@ -176,36 +176,20 @@ export function LandingHero() {
             </h1>
 
             <p className="text-foreground/85 text-base sm:text-lg leading-relaxed max-w-prose">
-              Masukkan kode pesanan dari nota atau pesan bengkel untuk memantau
-              tahapan pengerjaan, foto perkembangan berkala, dan status kesiapan
-              motor Anda.
+              Pantau tahapan pengerjaan modifikasi, dokumentasi foto berkala dari
+              montir, hingga status kesiapan motor Anda cukup dengan kode pesanan
+              dari nota bengkel.
             </p>
 
-            <form
-              action="/lacak"
-              method="GET"
-              className="space-y-3 pt-2 max-w-lg"
-            >
-              <div className="relative">
-                <Search
-                  className="size-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  aria-hidden="true"
-                />
-                <Input
-                  type="text"
-                  name="kode"
-                  required
-                  aria-label="Kode Pesanan"
-                  placeholder="Contoh: PSN-9824-7123"
-                  className="h-12 pl-10 pr-4 font-mono text-base uppercase tracking-wider bg-card shadow-sm"
-                />
-              </div>
-
-              <Button type="submit" size="lg" className="w-full sm:w-auto px-7 shadow-sm">
-                <span>Lacak Pesanan</span>
-                <ArrowRight className="size-4" aria-hidden="true" />
+            <div className="pt-2">
+              <Button asChild size="lg" className="w-full sm:w-auto px-7 shadow-sm">
+                <Link href="/lacak">
+                  <Search className="size-4" aria-hidden="true" />
+                  <span>Lacak Pesanan</span>
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
               </Button>
-            </form>
+            </div>
 
             <p className="text-xs text-muted-foreground">
               * Privasi aman: Data pribadi dan rincian biaya tidak ditampilkan di
