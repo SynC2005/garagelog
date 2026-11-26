@@ -10,6 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@prisma/client": "^6.4.1",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",

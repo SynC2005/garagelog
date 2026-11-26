@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Wrench,
   Search,
@@ -18,10 +17,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLacakTransition } from "@/components/lacak/LacakTransitionContext";
 import { trackOrderAction } from "@/server/api/lacak/lacakApi";
 
 export function LacakFormWrapper() {
-  const router = useRouter();
+  const { startTrackingTransition } = useLacakTransition();
   const [kode, setKode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -38,11 +38,12 @@ export function LacakFormWrapper() {
 
     setIsLoading(true);
     const res = await trackOrderAction(cleanCode);
-    setIsLoading(false);
 
     if (res.success && res.data) {
-      router.push(`/lacak/${cleanCode}`);
+      startTrackingTransition(cleanCode);
+      setIsLoading(false);
     } else {
+      setIsLoading(false);
       setError(
         res.error ||
           "Kode tidak ditemukan. Periksa kembali kode pada nota atau pesan Anda."
