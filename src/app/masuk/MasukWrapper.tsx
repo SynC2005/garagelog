@@ -8,6 +8,7 @@ import {
   Mail,
   AlertCircle,
   Clock,
+  ArrowLeft,
   ArrowRight,
   ShieldCheck,
   Crown,
@@ -148,7 +149,13 @@ export function MasukWrapper() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col justify-between p-4">
-      <div className="flex justify-end p-2">
+      <div className="max-w-5xl w-full mx-auto flex items-center justify-between gap-2 p-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/">
+            <ArrowLeft className="size-3.5" aria-hidden="true" />
+            <span>Kembali ke Beranda</span>
+          </Link>
+        </Button>
         <ThemeToggle />
       </div>
 
