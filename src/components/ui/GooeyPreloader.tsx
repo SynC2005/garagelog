@@ -36,10 +36,10 @@ export function GooeyPreloader({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const backdropRectRef = useRef<SVGRectElement>(null);
+  const discMaskCircleRef = useRef<SVGCircleElement>(null);
   const holeCircleRef = useRef<SVGCircleElement>(null);
   const blobsStageRef = useRef<HTMLDivElement>(null);
   const centerDiscRef = useRef<HTMLDivElement>(null);
-  const rimRingRef = useRef<HTMLDivElement>(null);
   const blob0Ref = useRef<HTMLDivElement>(null);
   const blob1Ref = useRef<HTMLDivElement>(null);
   const blob2Ref = useRef<HTMLDivElement>(null);
@@ -112,8 +112,8 @@ export function GooeyPreloader({
         counterWrapRef.current,
         {
           opacity: 0,
-          y: 14,
-          duration: 0.22,
+          y: 12,
+          duration: 0.2,
           ease: "power2.in",
         },
         0
@@ -126,64 +126,48 @@ export function GooeyPreloader({
         {
           opacity: 0,
           scale: 0.9,
-          duration: 0.24,
+          duration: 0.2,
           ease: "power2.in",
         },
         0
       );
     }
 
-    if (blobsStageRef.current) {
+    if (discMaskCircleRef.current) {
       revealTl.set(
-        [
-          blob0Ref.current,
-          blob1Ref.current,
-          blob2Ref.current,
-          blob3Ref.current,
-        ].filter(Boolean),
-        { opacity: 0 },
-        0.1
+        discMaskCircleRef.current,
+        { opacity: 1, attr: { r: 72 } },
+        0.06
       );
     }
 
-    if (centerDiscRef.current) {
-      revealTl.to(
-        centerDiscRef.current,
-        {
-          scale: 1.15,
-          opacity: 0,
-          duration: 0.28,
-          ease: "power2.out",
-        },
-        0.1
-      );
+    if (blobsStageRef.current) {
+      revealTl.set(blobsStageRef.current, { opacity: 0 }, 0.06);
     }
 
     if (holeCircleRef.current) {
       revealTl.fromTo(
         holeCircleRef.current,
-        { attr: { r: 64 } },
+        { attr: { r: 0 } },
         {
           attr: { r: maxRadius },
-          duration: 0.78,
+          duration: 0.84,
           ease: "power4.inOut",
         },
-        0.14
+        0.08
       );
     }
 
-    if (rimRingRef.current) {
-      const targetScale = Math.max(8, (maxRadius * 2) / 140);
+    if (discMaskCircleRef.current) {
       revealTl.fromTo(
-        rimRingRef.current,
-        { scale: 1, opacity: 0.9 },
+        discMaskCircleRef.current,
+        { attr: { r: 72 } },
         {
-          scale: targetScale,
-          opacity: 0,
-          duration: 0.78,
+          attr: { r: maxRadius + 28 },
+          duration: 0.84,
           ease: "power4.inOut",
         },
-        0.14
+        0.08
       );
     }
   }, [active]);
@@ -198,20 +182,35 @@ export function GooeyPreloader({
       const reduce =
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
-      const counterSpan = Math.min(220, Math.round(window.innerWidth * 0.26));
+      const edgePad = Math.max(20, Math.round(window.innerWidth * 0.03));
+      let counterWidth = 132;
+      if (counterWrapRef.current && counterValueRef.current) {
+        counterValueRef.current.textContent = "100";
+        counterWidth = Math.ceil(
+          counterWrapRef.current.getBoundingClientRect().width
+        );
+        counterValueRef.current.textContent = "00";
+      }
+      const startX = edgePad;
+      const endX = Math.max(
+        startX,
+        window.innerWidth - edgePad - counterWidth
+      );
 
       if (counterValueRef.current) counterValueRef.current.textContent = "00";
       if (holeCircleRef.current) gsap.set(holeCircleRef.current, { attr: { r: 0 } });
+      if (discMaskCircleRef.current) {
+        gsap.set(discMaskCircleRef.current, { opacity: 0, attr: { r: 72 } });
+      }
       if (backdropRectRef.current) gsap.set(backdropRectRef.current, { opacity: 1 });
-      if (rimRingRef.current) gsap.set(rimRingRef.current, { scale: 0.9, opacity: 0 });
-      if (logoRef.current) gsap.set(logoRef.current, { opacity: 0, scale: 0.84 });
+      if (blobsStageRef.current) gsap.set(blobsStageRef.current, { opacity: 1 });
+      if (logoRef.current) gsap.set(logoRef.current, { opacity: 0, scale: 0.86 });
       if (centerDiscRef.current) gsap.set(centerDiscRef.current, { scale: 0.45, opacity: 1 });
       if (counterWrapRef.current) {
         gsap.set(counterWrapRef.current, {
           opacity: 1,
           y: 0,
-          xPercent: -50,
-          x: -counterSpan,
+          x: startX,
         });
       }
 
@@ -225,6 +224,7 @@ export function GooeyPreloader({
       if (reduce) {
         if (centerDiscRef.current) gsap.set(centerDiscRef.current, { scale: 1 });
         if (logoRef.current) gsap.set(logoRef.current, { opacity: 1, scale: 1 });
+        if (counterWrapRef.current) gsap.set(counterWrapRef.current, { x: endX });
         if (counterValueRef.current) counterValueRef.current.textContent = "100";
         gsap.delayedCall(0.45, () => {
           minBeatsDoneRef.current = true;
@@ -234,10 +234,10 @@ export function GooeyPreloader({
       }
 
       const startCoords = [
-        { x: -130, y: -90, scale: 0.85 },
-        { x: 140, y: -70, scale: 0.95 },
-        { x: -115, y: 95, scale: 0.8 },
-        { x: 120, y: 95, scale: 0.9 },
+        { x: -145, y: -105, scale: 0.9 },
+        { x: 155, y: -85, scale: 1.0 },
+        { x: -125, y: 110, scale: 0.85 },
+        { x: 140, y: 105, scale: 0.95 },
       ];
 
       blobs.forEach((blob, idx) => {
@@ -253,11 +253,13 @@ export function GooeyPreloader({
       });
 
       const introTl = gsap.timeline();
-      const beatDuration = 0.28;
+      const beatDuration = 0.26;
+      const firstBeatDelay = 0.16;
+      const beatInterval = 0.28;
 
-      // 4 beats: blobs swirl into central melted disc while counter steps to 100 across screen
+      // 4 beats: mulai dari 00% di ujung kiri layar hingga 100% di ujung kanan layar
       BEAT_TARGETS.forEach((targetVal, beatIdx) => {
-        const beatTime = beatIdx * 0.3;
+        const beatTime = firstBeatDelay + beatIdx * beatInterval;
         const progress = (beatIdx + 1) / BEAT_TARGETS.length;
         const remain = 1 - progress;
         const angleOffset = progress * Math.PI * 1.15;
@@ -275,7 +277,7 @@ export function GooeyPreloader({
             {
               x: nextX,
               y: nextY,
-              scale: remain > 0.05 ? 0.95 : 0.7,
+              scale: remain > 0.05 ? 0.95 : 0.65,
               duration: beatDuration,
               ease: "power2.inOut",
             },
@@ -287,7 +289,7 @@ export function GooeyPreloader({
           introTl.to(
             centerDiscRef.current,
             {
-              scale: 0.55 + progress * 0.45,
+              scale: 0.45 + progress * 0.55,
               duration: beatDuration,
               ease: "power2.out",
             },
@@ -299,7 +301,7 @@ export function GooeyPreloader({
           introTl.to(
             counterWrapRef.current,
             {
-              x: -counterSpan + progress * counterSpan * 2,
+              x: startX + (endX - startX) * progress,
               duration: beatDuration,
               ease: "power3.out",
               onStart: () => {
@@ -316,17 +318,17 @@ export function GooeyPreloader({
         }
       });
 
-      // Logo fades in onto the central melted disc after the 4 beats
+      // Logo muncul pada cakram tengah begitu 4 ketukan melebur ke tengah
       if (logoRef.current) {
         introTl.to(
           logoRef.current,
           {
             opacity: 1,
             scale: 1,
-            duration: 0.32,
+            duration: 0.3,
             ease: "power3.out",
           },
-          1.15
+          1.12
         );
       }
 
@@ -336,7 +338,7 @@ export function GooeyPreloader({
           tryStartReveal();
         },
         undefined,
-        1.48
+        1.72
       );
     },
     { scope: containerRef, dependencies: [active] }
@@ -358,13 +360,19 @@ export function GooeyPreloader({
       aria-label={ariaLabel || "Memuat halaman GarageLog"}
       className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden select-none"
     >
-      {/* SVG Backdrop dengan Lubang Lingkaran Membuka ke Halaman Pelacakan */}
+      {/* SVG Backdrop & Cakram Portal Membuka ke Halaman Tujuan */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
+        className="absolute inset-0 z-0 w-full h-full pointer-events-none"
         aria-hidden="true"
       >
         <defs>
-          <filter id={filterId}>
+          <filter
+            id={filterId}
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%"
+          >
             <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
             <feColorMatrix
               in="blur"
@@ -379,27 +387,29 @@ export function GooeyPreloader({
             <circle ref={holeCircleRef} cx="50%" cy="50%" r="0" fill="black" />
           </mask>
         </defs>
-        <rect
-          ref={backdropRectRef}
-          width="100%"
-          height="100%"
-          className="fill-background"
-          mask={`url(#${maskId})`}
-        />
+        <g mask={`url(#${maskId})`}>
+          <rect
+            ref={backdropRectRef}
+            width="100%"
+            height="100%"
+            className="fill-background"
+          />
+          <circle
+            ref={discMaskCircleRef}
+            cx="50%"
+            cy="50%"
+            r="72"
+            opacity="0"
+            className="fill-primary"
+          />
+        </g>
       </svg>
-
-      {/* Ring Ekspansi Portal saat Disc Membuka */}
-      <div
-        ref={rimRingRef}
-        aria-hidden="true"
-        className="pointer-events-none absolute size-[140px] rounded-full border-2 border-primary/80"
-      />
 
       {/* Stage Gooey Blobs -> Melted Center Disc */}
       <div
         ref={blobsStageRef}
         aria-hidden="true"
-        className="relative flex items-center justify-center w-80 h-80 pointer-events-none"
+        className="relative z-10 flex items-center justify-center w-96 h-96 pointer-events-none"
         style={{ filter: `url(#${filterId})` }}
       >
         <div
@@ -420,14 +430,14 @@ export function GooeyPreloader({
         />
         <div
           ref={centerDiscRef}
-          className="relative size-36 rounded-full bg-primary shadow-lg"
+          className="relative size-36 rounded-full bg-primary"
         />
       </div>
 
-      {/* Logo GarageLog & Kode Pesanan di Tengah Disc */}
+      {/* Logo GarageLog & Subjudul di Tengah Cakram */}
       <div
         ref={logoRef}
-        className="pointer-events-none absolute flex flex-col items-center justify-center text-primary-foreground text-center px-4"
+        className="pointer-events-none absolute z-20 flex flex-col items-center justify-center text-primary-foreground text-center px-4"
       >
         <div className="size-10 rounded-xl bg-background/15 border border-primary-foreground/25 flex items-center justify-center mb-1.5">
           <Wrench className="size-5" aria-hidden="true" />
@@ -442,10 +452,10 @@ export function GooeyPreloader({
         )}
       </div>
 
-      {/* Counter Melangkah ke 100 dalam 4 Ketukan */}
+      {/* Counter Melangkah dari Ujung Kiri ke Ujung Kanan dalam 4 Ketukan */}
       <div
         ref={counterWrapRef}
-        className="pointer-events-none absolute bottom-12 sm:bottom-16 left-1/2 flex items-baseline gap-1 text-foreground"
+        className="pointer-events-none fixed bottom-14 sm:bottom-16 left-0 z-20 flex items-baseline gap-1 text-foreground"
       >
         <span
           ref={counterValueRef}
