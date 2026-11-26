@@ -106,19 +106,19 @@ export function LandingHero() {
           direction="alternate"
           parallax={0.5}
           spotlight={0.65}
-          dim={isDark ? 0.55 : 0.45}
-          fade={0.65}
+          dim={isDark ? 0.18 : 0.35}
+          fade={0.35}
           grayscale={false}
           theme={isDark ? "dark" : "light"}
-          tileColor={isDark ? "#18181b" : "#f1f5f9"}
-          textColor={isDark ? "#e4e4e7" : "#1e293b"}
+          tileColor={isDark ? "#27272a" : "#e2e8f0"}
+          textColor={isDark ? "#f4f4f5" : "#1e293b"}
         />
       </div>
 
-      {/* Scrim Kontras agar Tipografi dan Form Tetap Tajam di Light & Dark Mode */}
+      {/* Scrim Kontras terarah agar latar GridMotion tetap terlihat jelas di Dark Mode */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 pointer-events-none bg-background/85 lg:bg-transparent lg:bg-gradient-to-r lg:from-background/95 lg:via-background/85 lg:to-background/55"
+        className="absolute inset-0 pointer-events-none bg-background/75 dark:bg-background/65 lg:bg-transparent dark:lg:bg-transparent lg:bg-gradient-to-r lg:from-background/88 lg:via-background/68 lg:to-background/15 dark:lg:from-background/85 dark:lg:via-background/62 dark:lg:to-background/15"
       />
 
       {/* Konten Utama Hero */}

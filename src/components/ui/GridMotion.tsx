@@ -86,9 +86,9 @@ const THEMES: Record<
   { tile: string; text: string; border: string }
 > = {
   dark: {
-    tile: "#18181b",
-    text: "rgba(244, 244, 245, 0.82)",
-    border: "rgba(255, 255, 255, 0.08)",
+    tile: "#27272a",
+    text: "rgba(244, 244, 245, 0.88)",
+    border: "rgba(255, 255, 255, 0.16)",
   },
   light: {
     tile: "#f1f5f9",
