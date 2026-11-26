@@ -13,6 +13,7 @@ import {
   Crown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useBrand } from "@/components/brand-provider";
 import { useRouteTransition } from "@/components/route-transition-provider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ function formatCountdown(seconds: number): string {
 }
 
 export function MasukWrapper() {
+  const brand = useBrand();
   const { startRouteTransition } = useRouteTransition();
   const [email, setEmail] = React.useState("admin@garagelog.com");
   const [password, setPassword] = React.useState("bengkel123");
@@ -153,14 +155,25 @@ export function MasukWrapper() {
       <div className="w-full max-w-md mx-auto">
         <Card className="py-0 gap-0">
           <CardHeader className="pt-6 pb-4 text-center space-y-2">
-            <div className="size-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto">
-              <Wrench className="size-6" aria-hidden="true" />
-            </div>
+            {brand.logoUrl ? (
+              <div className="size-12 rounded-xl bg-card border border-border overflow-hidden flex items-center justify-center mx-auto p-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brand.logoUrl}
+                  alt={`Logo ${brand.namaPerusahaan}`}
+                  className="w-full h-full object-contain rounded-lg"
+                />
+              </div>
+            ) : (
+              <div className="size-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto">
+                <Wrench className="size-6" aria-hidden="true" />
+              </div>
+            )}
             <CardTitle className="text-2xl font-bold tracking-tight">
-              Masuk Staf
+              Masuk Staf &mdash; {brand.namaPerusahaan}
             </CardTitle>
             <CardDescription className="text-xs">
-              Khusus admin, montir, dan pemilik usaha bengkel.
+              Khusus admin, montir, dan pemilik usaha {brand.namaPerusahaan}.
             </CardDescription>
           </CardHeader>
 
@@ -312,7 +325,8 @@ export function MasukWrapper() {
       </div>
 
       <div className="text-center py-4 text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} GarageLog. Seluruh hak cipta dilindungi.
+        &copy; {new Date().getFullYear()} {brand.namaPerusahaan}. Seluruh hak
+        cipta dilindungi.
       </div>
     </div>
   );

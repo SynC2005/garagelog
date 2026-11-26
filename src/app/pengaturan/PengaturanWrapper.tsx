@@ -12,8 +12,10 @@ import {
   RotateCcw,
   Save,
   Lock,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LandingSettingsTab } from "./LandingSettingsTab";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +60,11 @@ import {
   updateRolePermissionsAction,
   resetRolePermissionsAction,
 } from "@/server/api/pengaturan/pengaturanApi";
+import {
+  DEFAULT_LANDING_SETTINGS,
+  type CustomerReviewItem,
+  type LandingSettingsData,
+} from "@/lib/landingDefaults";
 import { PeranUser } from "@prisma/client";
 import {
   DEFAULT_ROLE_PERMISSIONS,
@@ -95,6 +102,8 @@ interface PengaturanWrapperProps {
   initialStaffList: StaffItem[];
   initialStagesList: StageItem[];
   initialPermissionsList: RolePermissionRecord[];
+  initialLandingSettings?: LandingSettingsData;
+  initialReviewsList?: CustomerReviewItem[];
   activeStaff?: {
     nama: string;
     peran: PeranUser;
@@ -153,6 +162,8 @@ export function PengaturanWrapper({
   initialStaffList,
   initialStagesList,
   initialPermissionsList,
+  initialLandingSettings = DEFAULT_LANDING_SETTINGS,
+  initialReviewsList = [],
   activeStaff,
   allowedFeatures,
   canManage = true,
@@ -569,7 +580,7 @@ export function PengaturanWrapper({
 
       {/* Tabs Navigation */}
       <Tabs defaultValue="staf" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="staf" className="text-xs sm:text-sm">
             Akun Staf
           </TabsTrigger>
@@ -579,6 +590,10 @@ export function PengaturanWrapper({
           <TabsTrigger value="hak-akses" className="text-xs sm:text-sm gap-1.5">
             <ShieldCheck className="size-3.5" aria-hidden="true" />
             <span>Konfigurasi Hak Akses</span>
+          </TabsTrigger>
+          <TabsTrigger value="landing" className="text-xs sm:text-sm gap-1.5">
+            <Globe className="size-3.5" aria-hidden="true" />
+            <span>Landing Page</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1011,6 +1026,16 @@ export function PengaturanWrapper({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Tab 4: Pengaturan Landing Page */}
+        <TabsContent value="landing">
+          <LandingSettingsTab
+            initialSettings={initialLandingSettings}
+            initialReviews={initialReviewsList}
+            canManage={canManage}
+            onNotify={showNotification}
+          />
         </TabsContent>
       </Tabs>
 

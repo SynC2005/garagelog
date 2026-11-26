@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Wrench,
   Search,
   AlertCircle,
   ArrowRight,
@@ -17,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { useRouteTransition } from "@/components/route-transition-provider";
 import { trackOrderAction } from "@/server/api/lacak/lacakApi";
 
@@ -65,18 +65,8 @@ export function LacakFormWrapper() {
       {/* Header Navbar */}
       <header className="border-b border-border bg-card/90 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
-              <Wrench className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <span className="font-bold text-lg tracking-tight">
-                Garage<span className="text-primary">Log</span>
-              </span>
-              <p className="text-[11px] text-muted-foreground font-medium hidden sm:block">
-                Bengkel Modifikasi Motor
-              </p>
-            </div>
+          <Link href="/" className="min-w-0">
+            <BrandMark size="md" />
           </Link>
 
           <div className="flex items-center gap-2.5">

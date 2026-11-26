@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wrench, LogOut, ExternalLink } from "lucide-react";
+import { LogOut, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useRouteTransition } from "@/components/route-transition-provider";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -144,19 +145,9 @@ export function StaffLayout({
   const SidebarBrand = (
     <Link
       href={homeHref}
-      className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
+      className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
     >
-      <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
-        <Wrench className="size-4" aria-hidden="true" />
-      </div>
-      <div className="min-w-0">
-        <span className="font-bold text-base tracking-tight text-foreground">
-          Garage<span className="text-primary">Log</span>
-        </span>
-        <p className="text-[11px] text-muted-foreground font-medium -mt-0.5 hidden sm:block">
-          POS &amp; Progres Bengkel
-        </p>
-      </div>
+      <BrandMark size="sm" subtitleOverride="POS & Progres Bengkel" />
     </Link>
   );
 

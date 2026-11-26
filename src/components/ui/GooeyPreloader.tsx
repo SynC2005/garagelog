@@ -5,6 +5,7 @@ import { useId, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Wrench } from "lucide-react";
+import { useBrand } from "@/components/brand-provider";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP);
@@ -73,6 +74,7 @@ export function GooeyPreloader({
   ariaLabel,
   onComplete,
 }: GooeyPreloaderProps) {
+  const brand = useBrand();
   const rawId = useId();
   const safeId = rawId.replace(/:/g, "");
   const filterId = `gm-gooey-${safeId}`;
@@ -596,16 +598,25 @@ export function GooeyPreloader({
         </g>
       </svg>
 
-      {/* Logo GarageLog & Subjudul di Tengah Badan Piston */}
+      {/* Logo Perusahaan & Subjudul di Tengah Badan Piston */}
       <div
         ref={logoRef}
         className="pointer-events-none absolute z-20 flex flex-col items-center justify-center text-primary-foreground text-center px-4"
       >
-        <div className="size-9 rounded-xl bg-background/15 border border-primary-foreground/25 flex items-center justify-center mb-1">
-          <Wrench className="size-4" aria-hidden="true" />
+        <div className="size-9 rounded-xl bg-background/15 border border-primary-foreground/25 flex items-center justify-center mb-1 overflow-hidden">
+          {brand.logoUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={brand.logoUrl}
+              alt=""
+              className="w-full h-full object-contain p-0.5"
+            />
+          ) : (
+            <Wrench className="size-4" aria-hidden="true" />
+          )}
         </div>
-        <span className="font-extrabold text-sm tracking-tight leading-none">
-          GarageLog
+        <span className="font-extrabold text-sm tracking-tight leading-none max-w-[122px] truncate">
+          {brand.namaPerusahaan}
         </span>
         {(subtitle ?? orderCode) && (
           <span className="mt-1 font-mono text-[10px] font-semibold tracking-wider opacity-90 max-w-[122px] truncate">

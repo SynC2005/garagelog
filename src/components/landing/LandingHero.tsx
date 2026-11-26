@@ -116,7 +116,11 @@ const HERO_WORKSHOP_ITEMS: GridMotionItem[] = [
 
 const emptySubscribe = () => () => {};
 
-export function LandingHero() {
+interface LandingHeroProps {
+  heroBgUrl?: string | null;
+}
+
+export function LandingHero({ heroBgUrl }: LandingHeroProps) {
   const { resolvedTheme } = useTheme();
   const mounted = React.useSyncExternalStore(
     emptySubscribe,
@@ -131,33 +135,47 @@ export function LandingHero() {
       aria-label="Pelacakan progres modifikasi motor"
       className="relative overflow-hidden border-b border-border bg-background"
     >
-      {/* Lapisan Latar GridMotion Interaktif */}
+      {/* Lapisan Latar Hero: Foto Kustom atau GridMotion Interaktif Bawaan */}
       <div className="absolute inset-0 pointer-events-none select-none">
-        <GridMotion
-          items={HERO_WORKSHOP_ITEMS}
-          rows={4}
-          aspectRatio={1.33}
-          gap={16}
-          radius={14}
-          angle={-12}
-          tilt={8}
-          speed={22}
-          direction="alternate"
-          parallax={0.5}
-          spotlight={0.65}
-          dim={isDark ? 0.18 : 0.35}
-          fade={0.35}
-          grayscale={false}
-          theme={isDark ? "dark" : "light"}
-          tileColor={isDark ? "#27272a" : "#e2e8f0"}
-          textColor={isDark ? "#f4f4f5" : "#1e293b"}
-        />
+        {heroBgUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={heroBgUrl}
+            alt=""
+            draggable={false}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <GridMotion
+            items={HERO_WORKSHOP_ITEMS}
+            rows={4}
+            aspectRatio={1.33}
+            gap={16}
+            radius={14}
+            angle={-12}
+            tilt={8}
+            speed={22}
+            direction="alternate"
+            parallax={0.5}
+            spotlight={0.65}
+            dim={isDark ? 0.18 : 0.35}
+            fade={0.35}
+            grayscale={false}
+            theme={isDark ? "dark" : "light"}
+            tileColor={isDark ? "#27272a" : "#e2e8f0"}
+            textColor={isDark ? "#f4f4f5" : "#1e293b"}
+          />
+        )}
       </div>
 
-      {/* Scrim Kontras terarah agar latar GridMotion tetap terlihat jelas di Dark Mode */}
+      {/* Scrim Kontras terarah agar teks Hero tetap terbaca di Light & Dark Mode */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 pointer-events-none bg-background/75 dark:bg-background/65 lg:bg-transparent dark:lg:bg-transparent lg:bg-gradient-to-r lg:from-background/88 lg:via-background/68 lg:to-background/15 dark:lg:from-background/85 dark:lg:via-background/62 dark:lg:to-background/15"
+        className={`absolute inset-0 pointer-events-none ${
+          heroBgUrl
+            ? "bg-background/80 dark:bg-background/75 lg:bg-transparent dark:lg:bg-transparent lg:bg-gradient-to-r lg:from-background/95 lg:via-background/78 lg:to-background/35 dark:lg:from-background/92 dark:lg:via-background/75 dark:lg:to-background/35"
+            : "bg-background/75 dark:bg-background/65 lg:bg-transparent dark:lg:bg-transparent lg:bg-gradient-to-r lg:from-background/88 lg:via-background/68 lg:to-background/15 dark:lg:from-background/85 dark:lg:via-background/62 dark:lg:to-background/15"
+        }`}
       />
 
       {/* Konten Utama Hero */}

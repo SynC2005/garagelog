@@ -270,3 +270,35 @@ model RateLimitLogin {
   @@map("rate_limit_login")
 }
 
+model PengaturanLanding {
+  id                 Int      @id @default(1)
+  nama_perusahaan    String   @default("GarageLog")
+  tagline_perusahaan String   @default("Bengkel Modifikasi Motor")
+  logo_url           String?
+  hero_bg_url        String?
+  pemilik_nama       String   @default("Pak Hendro")
+  pemilik_jabatan    String   @default("Pemilik & Kepala Mekanik")
+  pemilik_foto_url   String   @default("/images/landing/pemilik-bengkel.jpg")
+  pemilik_kutipan    String
+  tahun_berdiri      Int      @default(2016)
+  updated_at         DateTime @updatedAt
+
+  @@map("pengaturan_landing")
+}
+
+model UlasanPelanggan {
+  id          Int      @id @default(autoincrement())
+  nama        String
+  motor       String
+  rating      Int      @default(5)
+  komentar    String
+  ditampilkan Boolean  @default(true)
+  urutan      Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([ditampilkan, urutan])
+  @@map("ulasan_pelanggan")
+}
+
+

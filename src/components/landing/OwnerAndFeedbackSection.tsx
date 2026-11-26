@@ -15,81 +15,23 @@ import { FlipCard } from "@/components/ui/FlipCard";
 import { FolderFloat, type FolderFloatItem } from "@/components/ui/FolderFloat";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  formatReviewSummary,
+  type CustomerReviewItem,
+  type LandingSettingsData,
+} from "@/lib/landingDefaults";
 
-interface CustomerReview {
-  id: string;
-  nama: string;
-  motor: string;
-  rating: number;
-  ringkas: string;
-  komentar: string;
+interface OwnerAndFeedbackSectionProps {
+  settings: LandingSettingsData;
+  reviews: CustomerReviewItem[];
 }
-
-const CUSTOMER_REVIEWS: CustomerReview[] = [
-  {
-    id: "rev-1",
-    nama: "Budi Santoso",
-    motor: "Yamaha Scorpio 225 (Cafe Racer)",
-    rating: 5,
-    ringkas: "★ 5.0 · Budi — Tangki & cat rapi",
-    komentar:
-      "Las tangki kustomnya halus dan cat ovennya rapi banget. Dari awal bongkar sampai pengujian, foto progres selalu masuk jadi tidak perlu tanya-tanya terus.",
-  },
-  {
-    id: "rev-2",
-    nama: "Raka Pratama",
-    motor: "Kawasaki W175 (Scrambler)",
-    rating: 5,
-    ringkas: "★ 5.0 · Raka — Progres update",
-    komentar:
-      "Suka fitur lacak kodenya. Waktu nunggu shockbreaker datang pun dikasih pembaruan info oleh montir, pengerjaan selesai tepat estimasi.",
-  },
-  {
-    id: "rev-3",
-    nama: "Dimas Wijaya",
-    motor: "Honda CB150R (Tracker)",
-    rating: 5,
-    ringkas: "★ 5.0 · Dimas — Kelistrikan rapi",
-    komentar:
-      "Jalur kabel lampu LED dirapikan tersembunyi di bawah jok dan diuji pakai multimeter sebelum serah terima. Sampai sekarang dipakai hujan tetap aman.",
-  },
-  {
-    id: "rev-4",
-    nama: "Fajar Nugroho",
-    motor: "Yamaha XSR 155 (Brat Style)",
-    rating: 5,
-    ringkas: "★ 5.0 · Fajar — Biaya transparan",
-    komentar:
-      "Rincian jasa sama suku cadangnya jelas dari awal sebelum dikerjakan. Tidak ada biaya mendadak dan nota cetaknya detail.",
-  },
-  {
-    id: "rev-5",
-    nama: "Bagus Setiawan",
-    motor: "Suzuki Thunder 250 (Bobber)",
-    rating: 4,
-    ringkas: "★ 4.0 · Bagus — Setting enteng",
-    komentar:
-      "Setting karburator dan knalpot stainless langsung terasa responsif saat tes jalan. Sempat mundur sehari karena antre ruang cat oven, tapi hasilnya memuaskan.",
-  },
-  {
-    id: "rev-6",
-    nama: "Reza Mahendra",
-    motor: "Honda Tiger 2000 (Japstyle)",
-    rating: 5,
-    ringkas: "★ 5.0 · Reza — Rangka kokoh",
-    komentar:
-      "Subframe belakang dipotong ulang dan disambung rapi banget, posisi berkendara jauh lebih nyaman buat turing jarak jauh.",
-  },
-];
-
-const AVERAGE_RATING = (
-  CUSTOMER_REVIEWS.reduce((sum, item) => sum + item.rating, 0) /
-  CUSTOMER_REVIEWS.length
-).toFixed(1);
 
 const emptySubscribe = () => () => {};
 
-export function OwnerAndFeedbackSection() {
+export function OwnerAndFeedbackSection({
+  settings,
+  reviews,
+}: OwnerAndFeedbackSectionProps) {
   const { resolvedTheme } = useTheme();
   const mounted = React.useSyncExternalStore(
     emptySubscribe,
@@ -104,20 +46,28 @@ export function OwnerAndFeedbackSection() {
 
   const folderItems: FolderFloatItem[] = React.useMemo(
     () =>
-      CUSTOMER_REVIEWS.map((rev) => ({
-        label: rev.ringkas,
-        value: rev.id,
+      reviews.map((rev) => ({
+        label: formatReviewSummary(rev),
+        value: String(rev.id),
       })),
-    []
+    [reviews]
   );
 
-  const activeReview =
-    CUSTOMER_REVIEWS[selectedReviewIdx] ?? CUSTOMER_REVIEWS[0];
+  const safeReviewIdx =
+    reviews.length > 0 ? Math.min(selectedReviewIdx, reviews.length - 1) : 0;
+  const activeReview = reviews[safeReviewIdx] ?? null;
+
+  const averageRating =
+    reviews.length > 0
+      ? (
+          reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length
+        ).toFixed(1)
+      : "0.0";
 
   const handleStepReview = (delta: number) => {
+    if (reviews.length === 0) return;
     setSelectedReviewIdx(
-      (prev) =>
-        (prev + delta + CUSTOMER_REVIEWS.length) % CUSTOMER_REVIEWS.length
+      (prev) => (prev + delta + reviews.length) % reviews.length
     );
   };
 
@@ -140,15 +90,18 @@ export function OwnerAndFeedbackSection() {
             Pendiri Bengkel &amp; Kata Pelanggan
           </h2>
           <p className="text-sm text-muted-foreground max-w-xl">
-            Balik kartu profil untuk membaca pesan pendiri kami sejak 2016, dan
-            klik folder interaktif untuk melihat komentar serta rating pelanggan.
+            Balik kartu profil untuk membaca pesan pendiri{" "}
+            {settings.namaPerusahaan} sejak {settings.tahunBerdiri}, dan klik
+            folder interaktif untuk melihat komentar serta rating pelanggan.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground shrink-0 pb-1">
           <div className="inline-flex items-center gap-1.5">
             <Calendar className="size-3.5 text-primary" aria-hidden="true" />
-            <span className="font-semibold text-foreground">Est. 2016</span>
+            <span className="font-semibold text-foreground">
+              Est. {settings.tahunBerdiri}
+            </span>
           </div>
           <span aria-hidden="true" className="text-border">
             &bull;
@@ -159,9 +112,9 @@ export function OwnerAndFeedbackSection() {
               aria-hidden="true"
             />
             <span className="font-semibold text-foreground">
-              {AVERAGE_RATING} / 5.0
+              {averageRating} / 5.0
             </span>
-            <span>({CUSTOMER_REVIEWS.length} ulasan)</span>
+            <span>({reviews.length} ulasan)</span>
           </div>
         </div>
       </div>
@@ -203,14 +156,14 @@ export function OwnerAndFeedbackSection() {
               color={isDark ? "#f4f4f5" : "#0f172a"}
               shadowColor="#000000"
               shadowOpacity={isDark ? 0.55 : 0.22}
-              ariaLabel="Kartu profil Pak Hendro, pemilik bengkel GarageLog. Tekan Enter atau klik untuk membalik kartu."
+              ariaLabel={`Kartu profil ${settings.pemilikNama}, pemilik ${settings.namaPerusahaan}. Tekan Enter atau klik untuk membalik kartu.`}
               onFlipChange={setIsOwnerFlipped}
               front={
                 <div className="relative w-full h-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/images/landing/pemilik-bengkel.jpg"
-                    alt="Pak Hendro, pemilik bengkel modifikasi motor GarageLog"
+                    src={settings.pemilikFotoUrl}
+                    alt={`${settings.pemilikNama}, pemilik bengkel ${settings.namaPerusahaan}`}
                     draggable={false}
                     className="w-full h-full object-cover"
                   />
@@ -221,13 +174,13 @@ export function OwnerAndFeedbackSection() {
                   <div className="absolute inset-x-0 bottom-0 p-5 text-left text-white space-y-1">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
                       <Calendar className="size-3" aria-hidden="true" />
-                      Est. 2016
+                      Est. {settings.tahunBerdiri}
                     </span>
                     <h4 className="text-xl font-extrabold leading-tight">
-                      Pak Hendro
+                      {settings.pemilikNama}
                     </h4>
                     <p className="text-xs text-zinc-200">
-                      Pemilik &amp; Kepala Mekanik GarageLog
+                      {settings.pemilikJabatan} &bull; {settings.namaPerusahaan}
                     </p>
                   </div>
                 </div>
@@ -238,7 +191,7 @@ export function OwnerAndFeedbackSection() {
                     <div className="flex items-center justify-between gap-2">
                       <Badge variant="info" className="gap-1.5 text-[11px]">
                         <Calendar className="size-3" aria-hidden="true" />
-                        <span>Berdiri Tahun 2016</span>
+                        <span>Berdiri Tahun {settings.tahunBerdiri}</span>
                       </Badge>
                       <Wrench
                         className="size-4 text-primary"
@@ -252,11 +205,7 @@ export function OwnerAndFeedbackSection() {
                         aria-hidden="true"
                       />
                       <p className="text-sm leading-relaxed text-foreground font-medium">
-                        &ldquo;Modifikasi motor bukan sekadar tampilan, tapi
-                        soal presisi rangka, keamanan kelistrikan, dan rasa
-                        percaya. Sejak bengkel ini berdiri tahun 2016, kami
-                        berkomitmen membuat setiap pemilik selalu melihat
-                        progres motornya secara jujur.&rdquo;
+                        &ldquo;{settings.pemilikKutipan}&rdquo;
                       </p>
                     </div>
                   </div>
@@ -264,10 +213,11 @@ export function OwnerAndFeedbackSection() {
                   <div className="pt-4 border-t border-border flex items-end justify-between gap-2">
                     <div>
                       <p className="text-sm font-bold text-foreground">
-                        Pak Hendro
+                        {settings.pemilikNama}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Pemilik Bengkel GarageLog &bull; Est. 2016
+                        {settings.pemilikJabatan} {settings.namaPerusahaan} &bull; Est.{" "}
+                        {settings.tahunBerdiri}
                       </p>
                     </div>
                     <span className="text-[11px] text-primary font-medium inline-flex items-center gap-1 shrink-0">
@@ -289,107 +239,125 @@ export function OwnerAndFeedbackSection() {
                 Komentar &amp; Rating Pelanggan
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {folderOpen
+                {reviews.length === 0
+                  ? "Ulasan pelanggan belum ditampilkan saat ini."
+                  : folderOpen
                   ? "Folder terbuka — klik catatan melayang untuk membaca ulasan lengkap."
                   : "Klik folder untuk mengeluarkan komentar dan rating pelanggan."}
               </p>
             </div>
 
             <Badge variant="secondary" className="gap-1 text-[11px] shrink-0">
-              <span>{folderOpen ? "Terbuka" : "Klik Folder"}</span>
+              <span>
+                {reviews.length === 0
+                  ? "Kosong"
+                  : folderOpen
+                  ? "Terbuka"
+                  : "Klik Folder"}
+              </span>
             </Badge>
           </div>
 
-          {/* Area Terbuka FolderFloat */}
-          <div className="pt-40 pb-2 flex flex-col items-center justify-end overflow-visible">
-            <FolderFloat
-              items={folderItems}
-              label="Ulasan Customer"
-              sublabel={`${CUSTOMER_REVIEWS.length} komentar`}
-              trigger="click"
-              closeOnSelect={false}
-              physics
-              drift={0.45}
-              spread={235}
-              lift={34}
-              tilt={6}
-              width={216}
-              height={150}
-              folderColor="#9a3412"
-              frontColor="#c2410c"
-              paperColor={isDark ? "#fed7aa" : "#fff7ed"}
-              itemColor={isDark ? "#27272a" : "#ffffff"}
-              itemTextColor={isDark ? "#f4f4f5" : "#0f172a"}
-              labelColor="#ffffff"
-              onOpenChange={setFolderOpen}
-              onSelect={(_, index) => setSelectedReviewIdx(index)}
-            />
-          </div>
-
-          {/* Detail Komentar Minimalis dengan Hairline Atas */}
-          <div
-            aria-live="polite"
-            className="pt-5 border-t border-border space-y-3"
-          >
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div
-                className="flex items-center gap-1"
-                aria-label={`Rating ${activeReview.rating} dari 5 bintang`}
-              >
-                {Array.from({ length: 5 }, (_, i) => (
-                  <Star
-                    key={i}
-                    className={`size-4 ${
-                      i < activeReview.rating
-                        ? "fill-amber-500 text-amber-500"
-                        : "text-muted-foreground/40"
-                    }`}
-                    aria-hidden="true"
-                  />
-                ))}
-                <span className="ml-1.5 text-xs font-bold tabular-nums text-foreground">
-                  {activeReview.rating.toFixed(1)}
-                </span>
+          {reviews.length > 0 ? (
+            <>
+              {/* Area Terbuka FolderFloat */}
+              <div className="pt-40 pb-2 flex flex-col items-center justify-end overflow-visible">
+                <FolderFloat
+                  items={folderItems}
+                  label="Ulasan Customer"
+                  sublabel={`${reviews.length} komentar`}
+                  trigger="click"
+                  closeOnSelect={false}
+                  physics
+                  drift={0.45}
+                  spread={235}
+                  lift={34}
+                  tilt={6}
+                  width={216}
+                  height={150}
+                  folderColor="#9a3412"
+                  frontColor="#c2410c"
+                  paperColor={isDark ? "#fed7aa" : "#fff7ed"}
+                  itemColor={isDark ? "#27272a" : "#ffffff"}
+                  itemTextColor={isDark ? "#f4f4f5" : "#0f172a"}
+                  labelColor="#ffffff"
+                  onOpenChange={setFolderOpen}
+                  onSelect={(_, index) => setSelectedReviewIdx(index)}
+                />
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => handleStepReview(-1)}
-                  aria-label="Ulasan sebelumnya"
+              {/* Detail Komentar Minimalis dengan Hairline Atas */}
+              {activeReview && (
+                <div
+                  aria-live="polite"
+                  className="pt-5 border-t border-border space-y-3"
                 >
-                  <ChevronLeft className="size-3.5" aria-hidden="true" />
-                </Button>
-                <span className="text-[11px] font-mono tabular-nums text-muted-foreground px-1">
-                  {selectedReviewIdx + 1}/{CUSTOMER_REVIEWS.length}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => handleStepReview(1)}
-                  aria-label="Ulasan berikutnya"
-                >
-                  <ChevronRight className="size-3.5" aria-hidden="true" />
-                </Button>
-              </div>
-            </div>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div
+                      className="flex items-center gap-1"
+                      aria-label={`Rating ${activeReview.rating} dari 5 bintang`}
+                    >
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          className={`size-4 ${
+                            i < activeReview.rating
+                              ? "fill-amber-500 text-amber-500"
+                              : "text-muted-foreground/40"
+                          }`}
+                          aria-hidden="true"
+                        />
+                      ))}
+                      <span className="ml-1.5 text-xs font-bold tabular-nums text-foreground">
+                        {activeReview.rating.toFixed(1)}
+                      </span>
+                    </div>
 
-            <p className="text-sm sm:text-base text-foreground leading-relaxed">
-              &ldquo;{activeReview.komentar}&rdquo;
-            </p>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => handleStepReview(-1)}
+                        aria-label="Ulasan sebelumnya"
+                      >
+                        <ChevronLeft className="size-3.5" aria-hidden="true" />
+                      </Button>
+                      <span className="text-[11px] font-mono tabular-nums text-muted-foreground px-1">
+                        {safeReviewIdx + 1}/{reviews.length}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => handleStepReview(1)}
+                        aria-label="Ulasan berikutnya"
+                      >
+                        <ChevronRight className="size-3.5" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  </div>
 
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-bold text-foreground">
-                {activeReview.nama}
-              </span>
-              <span className="text-muted-foreground">
-                {activeReview.motor}
-              </span>
+                  <p className="text-sm sm:text-base text-foreground leading-relaxed">
+                    &ldquo;{activeReview.komentar}&rdquo;
+                  </p>
+
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-bold text-foreground">
+                      {activeReview.nama}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {activeReview.motor}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="py-12 text-center text-sm text-muted-foreground border-t border-border">
+              Belum ada komentar pelanggan yang dipilih untuk ditampilkan.
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

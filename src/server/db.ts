@@ -14,7 +14,10 @@ const existingPrisma = globalForPrisma.prisma;
 const isStaleDevClient =
   process.env.NODE_ENV !== "production" &&
   existingPrisma !== undefined &&
-  (!("hakAksesPeran" in existingPrisma) || !("rateLimitLogin" in existingPrisma));
+  (!("hakAksesPeran" in existingPrisma) ||
+    !("rateLimitLogin" in existingPrisma) ||
+    !("pengaturanLanding" in existingPrisma) ||
+    !("ulasanPelanggan" in existingPrisma));
 
 export const prisma =
   !existingPrisma || isStaleDevClient ? createPrismaClient() : existingPrisma;

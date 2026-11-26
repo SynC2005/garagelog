@@ -4,6 +4,10 @@ import {
   getStageTemplates,
   getAllRolePermissions,
 } from "@/server/services/pengaturan/pengaturanService";
+import {
+  getAllCustomerReviews,
+  getLandingSettings,
+} from "@/server/services/pengaturan/landingService";
 import { requirePageAccess } from "@/server/services/auth/rbacService";
 import { AccessDeniedView } from "@/components/layout/AccessDeniedView";
 
@@ -12,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Pengaturan Bengkel — GarageLog",
   description:
-    "Manajemen akun staf bengkel, template tahapan pengerjaan, dan konfigurasi hak akses.",
+    "Manajemen akun staf bengkel, template tahapan pengerjaan, konfigurasi hak akses, dan pengaturan landing page.",
 };
 
 export default async function PengaturanPage() {
@@ -27,10 +31,18 @@ export default async function PengaturanPage() {
     );
   }
 
-  const [staffAccounts, stageTemplates, rolePermissions] = await Promise.all([
+  const [
+    staffAccounts,
+    stageTemplates,
+    rolePermissions,
+    landingSettings,
+    customerReviews,
+  ] = await Promise.all([
     getStaffAccounts(),
     getStageTemplates(),
     getAllRolePermissions(),
+    getLandingSettings(),
+    getAllCustomerReviews(),
   ]);
 
   return (
@@ -38,6 +50,8 @@ export default async function PengaturanPage() {
       initialStaffList={staffAccounts}
       initialStagesList={stageTemplates}
       initialPermissionsList={rolePermissions}
+      initialLandingSettings={landingSettings}
+      initialReviewsList={customerReviews}
       activeStaff={{ nama: access.user.nama, peran: access.user.peran }}
       allowedFeatures={access.allowedFeatures}
       canManage={access.canManage}

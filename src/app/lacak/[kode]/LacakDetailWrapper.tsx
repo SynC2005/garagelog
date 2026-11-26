@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Wrench,
   ArrowLeft,
   Clock,
   CheckCircle2,
@@ -12,6 +11,7 @@ import {
   Phone,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -88,18 +88,8 @@ export function LacakDetailWrapper({ trackingData }: TrackingDataProps) {
       {/* Header Navbar */}
       <header className="border-b border-border bg-card/90 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/lacak" className="flex items-center gap-2.5">
-            <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
-              <Wrench className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <span className="font-bold text-lg tracking-tight">
-                Garage<span className="text-primary">Log</span>
-              </span>
-              <p className="text-[11px] text-muted-foreground font-medium hidden sm:block">
-                Pelacakan Progres Modifikasi
-              </p>
-            </div>
+          <Link href="/lacak" className="min-w-0">
+            <BrandMark size="md" subtitleOverride="Pelacakan Progres Modifikasi" />
           </Link>
 
           <div className="flex items-center gap-3">
