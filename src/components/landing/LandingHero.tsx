@@ -9,6 +9,7 @@ import {
   Camera,
   ArrowRight,
   Wrench,
+  Zap,
 } from "lucide-react";
 import { GridMotion, type GridMotionItem } from "@/components/ui/GridMotion";
 import { Button } from "@/components/ui/button";
@@ -24,15 +25,27 @@ const HERO_WORKSHOP_ITEMS: GridMotionItem[] = [
   },
   <div
     key="stage-1"
-    className="flex flex-col items-start justify-between w-full h-full p-4 text-left"
+    className="relative flex flex-col items-start justify-between w-full h-full p-4 text-left overflow-hidden"
   >
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-primary">
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      src="/images/hero/kustom-rangka-tangki.jpg"
+      alt=""
+      draggable={false}
+      decoding="async"
+      className="absolute inset-0 w-full h-full object-cover"
+    />
+    <div
+      aria-hidden="true"
+      className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/15"
+    />
+    <span className="relative z-10 inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
       <Wrench className="size-3.5" aria-hidden="true" />
       Tahap 01
     </span>
-    <div>
-      <p className="font-bold text-sm text-foreground">Kustom Rangka &amp; Tangki</p>
-      <p className="text-[11px] text-muted-foreground mt-0.5">
+    <div className="relative z-10">
+      <p className="font-bold text-sm text-white">Kustom Rangka &amp; Tangki</p>
+      <p className="text-[11px] text-zinc-200 mt-0.5">
         Dokumentasi foto wajib
       </p>
     </div>
@@ -72,7 +85,33 @@ const HERO_WORKSHOP_ITEMS: GridMotionItem[] = [
     src: "https://images.unsplash.com/photo-1591637333184-19aa84b3e01f?w=640&q=75&auto=format&fit=crop",
     alt: "",
   },
-  "Uji Kelistrikan & Jalan",
+  <div
+    key="stage-road-test"
+    className="relative flex flex-col items-start justify-between w-full h-full p-4 text-left overflow-hidden"
+  >
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      src="/images/hero/uji-kelistrikan-jalan.jpg"
+      alt=""
+      draggable={false}
+      decoding="async"
+      className="absolute inset-0 w-full h-full object-cover"
+    />
+    <div
+      aria-hidden="true"
+      className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/15"
+    />
+    <span className="relative z-10 inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
+      <Zap className="size-3.5" aria-hidden="true" />
+      Tahap Akhir
+    </span>
+    <div className="relative z-10">
+      <p className="font-bold text-sm text-white">Uji Kelistrikan &amp; Jalan</p>
+      <p className="text-[11px] text-zinc-200 mt-0.5">
+        Inspeksi akhir sebelum serah terima
+      </p>
+    </div>
+  </div>,
 ];
 
 const emptySubscribe = () => () => {};
